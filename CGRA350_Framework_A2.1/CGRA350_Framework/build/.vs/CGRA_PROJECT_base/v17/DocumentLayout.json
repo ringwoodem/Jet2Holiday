@@ -1,0 +1,84 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\build\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{4C7D5AB2-4A1D-31B5-B41D-E451BF1D21B3}|src\\base.vcxproj|C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\skeleton.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4C7D5AB2-4A1D-31B5-B41D-E451BF1D21B3}|src\\base.vcxproj|C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\application.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4C7D5AB2-4A1D-31B5-B41D-E451BF1D21B3}|src\\base.vcxproj|C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\skeleton_model.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4C7D5AB2-4A1D-31B5-B41D-E451BF1D21B3}|src\\base.vcxproj|C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "skeleton_model.cpp",
+              "DocumentMoniker": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\skeleton_model.cpp",
+              "RelativeDocumentMoniker": "..\\work\\src\\skeleton_model.cpp",
+              "ToolTip": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\skeleton_model.cpp",
+              "RelativeToolTip": "..\\work\\src\\skeleton_model.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-09-06T09:35:20.891Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "skeleton.cpp",
+              "DocumentMoniker": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\skeleton.cpp",
+              "RelativeDocumentMoniker": "..\\work\\src\\skeleton.cpp",
+              "ToolTip": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\skeleton.cpp",
+              "RelativeToolTip": "..\\work\\src\\skeleton.cpp",
+              "ViewState": "AgIAAEcBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-09-06T09:35:19.249Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\main.cpp",
+              "RelativeDocumentMoniker": "..\\work\\src\\main.cpp",
+              "ToolTip": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\main.cpp",
+              "RelativeToolTip": "..\\work\\src\\main.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-09-06T09:35:17.253Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "application.cpp",
+              "DocumentMoniker": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\application.cpp",
+              "RelativeDocumentMoniker": "..\\work\\src\\application.cpp",
+              "ToolTip": "C:\\Users\\Emma Ringwood\\Downloads\\CGRA350_Framework_A2.1\\CGRA350_Framework\\work\\src\\application.cpp",
+              "RelativeToolTip": "..\\work\\src\\application.cpp",
+              "ViewState": "AgIAAIQAAAAAAAAAAAAAACIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-09-06T09:35:14.91Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

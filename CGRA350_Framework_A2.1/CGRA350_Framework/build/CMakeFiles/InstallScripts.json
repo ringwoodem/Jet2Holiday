@@ -1,0 +1,16 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/ext/glfw/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/ext/glfw/src/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/ext/glew-1.10.0/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/ext/stb/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/ext/imgui/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/ext/glm/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/src/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/src/cgra/cmake_install.cmake",
+		"C:/Users/Emma Ringwood/Downloads/CGRA350_Framework_A2.1/CGRA350_Framework/build/res/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
