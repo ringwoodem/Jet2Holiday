@@ -1,0 +1,5 @@
+# Visual Studio cache and IntelliSense
+.vs/
+*.VC.db
+*.ipch
+*.vsidx
