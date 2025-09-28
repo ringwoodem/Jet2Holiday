@@ -8,12 +8,15 @@
 // project
 #include "opengl.hpp"
 #include "cgra/cgra_mesh.hpp"
-#include "skeleton_model.hpp"
 
+#include "terrain.hpp"
 
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
 // including textures for texture mapping etc.
+
+
+
 struct basic_model {
 	GLuint shader = 0;
 	cgra::gl_mesh mesh;
@@ -32,6 +35,9 @@ private:
 	// window
 	glm::vec2 m_windowsize;
 	GLFWwindow *m_window;
+
+	GLuint m_shader;
+	Terrain m_terrain;
 
 	// oribital camera
 	float m_pitch = .86;
