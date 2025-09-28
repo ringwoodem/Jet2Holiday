@@ -39,11 +39,13 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
 	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
-	GLuint shader = sb.build();
+	m_shader = sb.build();
 
-	m_model.shader = shader;
+	m_model.shader = m_shader;
 	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
 	m_model.color = vec3(1, 0, 0);
+
+	m_terrain = Terrain(128, 128, 20.0f);
 }
 
 
@@ -80,7 +82,9 @@ void Application::render() {
 
 
 	// draw the model
-	m_model.draw(view, proj);
+	//m_model.draw(view, proj);
+
+	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f));
 }
 
 
@@ -107,11 +111,43 @@ void Application::renderGUI() {
 
 	
 	ImGui::Separator();
+	ImGui::Text("Terrain Settings");
 
-	// example of how to use input boxes
-	static float exampleInput;
-	if (ImGui::InputFloat("example input", &exampleInput)) {
-		cout << "example input changed to " << exampleInput << endl;
+	static float amplitude = m_terrain.getAmplitude();
+	static float frequency = m_terrain.getFrequency();
+	static int octaves = m_terrain.getOctaves();
+	static float persistence = m_terrain.getPersistence();
+	static float lacunarity = m_terrain.getLacunarity();
+
+	bool terrainChanged = false;
+
+	if (ImGui::SliderFloat("Amplitude", &amplitude, 0.1f, 50.0f)) {
+		m_terrain.setAmplitude(amplitude);
+		terrainChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Frequency", &frequency, 0.01f, 1.0f)) {
+		m_terrain.setFrequency(frequency);
+		terrainChanged = true;
+	}
+
+	if (ImGui::SliderInt("Octaves", &octaves, 1, 8)) {
+		m_terrain.setOctaves(octaves);
+		terrainChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Persistence", &persistence, 0.1f, 1.0f)) {
+		m_terrain.setPersistence(persistence);
+		terrainChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Lacunarity", &lacunarity, 1.5f, 4.0f)) {
+		m_terrain.setLacunarity(lacunarity);
+		terrainChanged = true;
+	}
+
+	if (terrainChanged) {
+		m_terrain.update();
 	}
 
 	// finish creating window
