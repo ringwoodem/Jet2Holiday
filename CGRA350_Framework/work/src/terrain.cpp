@@ -207,7 +207,30 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, glm::value_ptr(proj));
     glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, glm::value_ptr(modelview));
-    glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, glm::value_ptr(color));
+    glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
+
+	// Example values for terrain shader uniforms
+	// ideally these would be parameters of the Terrain class or passed into this function
+    // - Tyler
+    glm::vec3 cameraPos = glm::vec3(glm::inverse(view)[3]);
+    glm::vec3 sunPos = glm::vec3(0, 100, 0);
+    glm::vec3 sunColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    float sunRadius = 10.0f;
+    glm::vec3 terrainAlbedo = color;
+    float terrainRoughness = 0.7f;
+    float terrainMetallic = 0.0f;
+    float terrainWaterDepth = 2.0f;
+    float windIntensity = 1.0f;
+
+    glUniform3fv(glGetUniformLocation(shader, "uCameraPos"), 1, glm::value_ptr(cameraPos));
+    glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
+    glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColor));
+    glUniform1f(glGetUniformLocation(shader, "uSunRadius"), sunRadius);
+    glUniform3fv(glGetUniformLocation(shader, "uAlbedo"), 1, glm::value_ptr(terrainAlbedo));
+    glUniform1f(glGetUniformLocation(shader, "uRoughness"), terrainRoughness);
+    glUniform1f(glGetUniformLocation(shader, "uMetallic"), terrainMetallic);
+    glUniform1f(glGetUniformLocation(shader, "uWaterDepth"), terrainWaterDepth);
+    glUniform1f(glGetUniformLocation(shader, "uWindIntensity"), windIntensity);
 
     m_mesh.draw();
 }

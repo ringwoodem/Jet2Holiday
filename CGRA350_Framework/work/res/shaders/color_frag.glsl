@@ -1,26 +1,26 @@
 #version 330 core
 
-// uniform data
-uniform mat4 uProjectionMatrix;
-uniform mat4 uModelViewMatrix;
-uniform vec3 uColor;
+in vec3 vWorldPos;
+in vec3 vNormal;
 
-// viewspace data (this must match the output of the fragment shader)
-in VertexData {
-	vec3 position;
-	vec3 normal;
-	vec2 textureCoord;
-} f_in;
+uniform vec3 uCameraPos;
+uniform vec3 uSunPos;
+uniform vec3 uSunColor;
+uniform vec3 uAlbedo;
 
-// framebuffer output
-out vec4 fb_color;
+out vec4 FragColor;
 
 void main() {
-	// calculate lighting (hack)
-	vec3 eye = normalize(-f_in.position);
-	float light = abs(dot(normalize(f_in.normal), eye));
-	vec3 color = mix(uColor / 4, uColor, light);
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uSunPos - vWorldPos);
+    vec3 V = normalize(uCameraPos - vWorldPos);
 
-	// output to the frambuffer
-	fb_color = vec4(color, 1);
+    // Simple diffuse lighting
+    float diffuse = max(dot(N, L), 0.0);
+    vec3 color = uAlbedo * uSunColor * diffuse;
+
+    // For debugging: output normals as color
+    // vec3 color = N * 0.5 + 0.5;
+
+    FragColor = vec4(color, 1.0);
 }

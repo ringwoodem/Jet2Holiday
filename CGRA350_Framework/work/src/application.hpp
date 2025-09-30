@@ -37,6 +37,7 @@ private:
 	GLFWwindow *m_window;
 
 	GLuint m_shader;
+	GLuint m_terrainShader;
 	Terrain m_terrain;
 
 	// oribital camera
