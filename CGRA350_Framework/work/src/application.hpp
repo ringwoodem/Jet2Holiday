@@ -57,6 +57,11 @@ private:
 	// geometry
 	basic_model m_model;
 
+	float m_time = 0.0f; // seconds
+	float sunOrbitRadius = 200.0f;
+	float sunHeight = 100.0f;
+	float sunSpeed = 0.2f;
+
 public:
 	// setup
 	Application(GLFWwindow *);

@@ -80,6 +80,8 @@ void Application::render() {
 		* rotate(mat4(1), m_pitch, vec3(1, 0, 0))
 		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));
 
+	m_time += 0.016f;
+
 
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
@@ -90,7 +92,21 @@ void Application::render() {
 	// draw the model
 	//m_model.draw(view, proj);
 
-	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f));
+	float angle = m_time * sunSpeed;
+	vec3 sunPos = vec3(
+		sunOrbitRadius * cos(angle),
+		sunHeight * sin(angle) + sunHeight,
+		sunOrbitRadius * sin(angle)
+	);
+
+	float t = clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
+	vec3 sunColour = mix(
+		vec3(1.0f, 0.5f, 0.2f),
+		vec3(1.0f, 1.0f, 1.0f),
+		t
+	);
+
+	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour);
 }
 
 

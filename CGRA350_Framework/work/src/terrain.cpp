@@ -197,7 +197,7 @@ float Terrain::getHeightAtWorld(float x, float z) const {
     return getHeightAt(mapX, mapZ);
 }
 
-void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color) {
+void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour) {
     if (!m_meshGenerated) {
         generateMesh();
     }
@@ -213,8 +213,6 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
 	// ideally these would be parameters of the Terrain class or passed into this function
     // - Tyler
     glm::vec3 cameraPos = glm::vec3(glm::inverse(view)[3]);
-    glm::vec3 sunPos = glm::vec3(0, 100, 0);
-    glm::vec3 sunColor = glm::vec3(1.0f, 1.0f, 1.0f);
     float sunRadius = 10.0f;
     glm::vec3 terrainAlbedo = color;
     float terrainRoughness = 0.7f;
@@ -224,7 +222,7 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
 
     glUniform3fv(glGetUniformLocation(shader, "uCameraPos"), 1, glm::value_ptr(cameraPos));
     glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
-    glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColor));
+    glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColour));
     glUniform1f(glGetUniformLocation(shader, "uSunRadius"), sunRadius);
     glUniform3fv(glGetUniformLocation(shader, "uAlbedo"), 1, glm::value_ptr(terrainAlbedo));
     glUniform1f(glGetUniformLocation(shader, "uRoughness"), terrainRoughness);

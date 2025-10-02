@@ -70,7 +70,8 @@ public:
     float getHeightAtWorld(float x, float z) const;
 
     // Rendering
-    void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color = glm::vec3(0.2f, 0.8f, 0.2f));
+    void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color = glm::vec3(0.2f, 0.8f, 0.2f), 
+        const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f));
 
     // Update terrain (regenerate if parameters changed)
     void update();
