@@ -41,6 +41,12 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
 	m_shader = sb.build();
 
+	// terrain shader
+	shader_builder terrain_sb;
+	terrain_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
+	terrain_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//terrain_frag.glsl"));
+	m_terrainShader = terrain_sb.build();
+
 	m_model.shader = m_shader;
 	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
 	m_model.color = vec3(1, 0, 0);
@@ -76,6 +82,8 @@ void Application::render() {
 		* rotate(mat4(1), m_pitch, vec3(1, 0, 0))
 		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));
 
+	m_time += 0.016f;
+
 
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
@@ -85,10 +93,23 @@ void Application::render() {
 
 	// draw the model
 	//m_model.draw(view, proj);
+	float angle = m_time * sunSpeed;
+	vec3 sunPos = vec3(
+		sunOrbitRadius * cos(angle),
+		sunHeight * sin(angle) + sunHeight,
+		sunOrbitRadius * sin(angle)
+	);
 
-	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f));
+	float t = clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
+	vec3 sunColour = mix(
+		vec3(1.0f, 0.5f, 0.2f),
+		vec3(1.0f, 1.0f, 1.0f),
+		t
+	);
 
-	static auto lastTime = std::chrono::high_resolution_clock::now();
+	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour);
+  
+  static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 	lastTime = currentTime;

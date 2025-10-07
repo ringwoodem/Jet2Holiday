@@ -38,6 +38,7 @@ private:
 	GLFWwindow *m_window;
 
 	GLuint m_shader;
+	GLuint m_terrainShader;
 	Terrain m_terrain;
 	Water m_water;
 
@@ -57,6 +58,11 @@ private:
 
 	// geometry
 	basic_model m_model;
+
+	float m_time = 0.0f; // seconds
+	float sunOrbitRadius = 200.0f;
+	float sunHeight = 100.0f;
+	float sunSpeed = 0.2f;
 
 public:
 	// setup
