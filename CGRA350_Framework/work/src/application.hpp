@@ -10,6 +10,7 @@
 #include "cgra/cgra_mesh.hpp"
 
 #include "terrain.hpp"
+#include "water.hpp"
 
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
@@ -38,6 +39,7 @@ private:
 
 	GLuint m_shader;
 	Terrain m_terrain;
+	Water m_water;
 
 	// oribital camera
 	float m_pitch = .86;
