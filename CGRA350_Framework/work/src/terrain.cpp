@@ -233,7 +233,8 @@ float Terrain::getHeightAtWorld(float x, float z) const {
     return getHeightAt(mapX, mapZ);
 }
 
-void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour) {
+void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour,
+    GLuint grassDiff, GLuint grassNorm, GLuint grassRough) {
     if (!m_meshGenerated) {
         generateMesh();
     }
@@ -266,7 +267,38 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glUniform1f(glGetUniformLocation(shader, "uWaterDepth"), terrainWaterDepth);
     glUniform1f(glGetUniformLocation(shader, "uWindIntensity"), windIntensity);
 
+
+    if (grassDiff != 0) {
+        // Bind grass texture to texture unit 0
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, grassDiff);
+        glUniform1i(glGetUniformLocation(shader, "uGrassTexture"), 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, grassNorm);
+        glUniform1i(glGetUniformLocation(shader, "uGrassNormal"), 1);
+
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, grassRough);
+        glUniform1i(glGetUniformLocation(shader, "uGrassRoughness"), 2);
+
+        // Enable texture mode
+        glUniform1i(glGetUniformLocation(shader, "uUseTextures"), 1);
+
+        // Height-based blending parameters
+        glUniform1f(glGetUniformLocation(shader, "uGrassHeight"), m_grassHeight);
+    }
+    else {
+        glUniform1i(glGetUniformLocation(shader, "uUseTextures"), 0);
+    }
+
     m_mesh.draw();
+
+    for (int i = 0; i < 3; i++) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 void Terrain::update() {

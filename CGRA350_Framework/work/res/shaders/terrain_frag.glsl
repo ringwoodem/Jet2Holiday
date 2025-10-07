@@ -2,6 +2,8 @@
 
 in vec3 vWorldPos;
 in vec3 vNormal;
+in vec2 vTexCoord;
+in float vHeight;
 
 uniform vec3 uCameraPos;
 uniform vec3 uSunPos;
@@ -12,6 +14,14 @@ uniform float uRoughness;
 uniform float uMetallic;
 uniform float uWaterDepth;
 uniform float uWindIntensity;
+
+uniform sampler2D uGrassTexture;
+uniform sampler2D uRockTexture;
+uniform int uUseTextures;
+uniform float uGrassHeight;
+uniform float uRockHeight;
+uniform float uBlendRange;
+
 
 out vec4 FragColor;
 
@@ -69,8 +79,20 @@ void main() {
     vec3 V = normalize(uCameraPos - vWorldPos);
     vec3 L = normalize(uSunPos - vWorldPos);
 
+    vec3 albedo = uAlbedo;
+
+     if (uUseTextures == 1) {
+        // Tile the texture (adjust multiplier to control texture scale)
+        vec2 tiledUV = vTexCoord * 10.0;
+        
+        // Sample grass texture only
+        albedo = texture(uGrassTexture, tiledUV).rgb;
+    }
+
     // Shadow (placeholder, not true PCSS)
     float shadow = 1.0; // No shadow map
+
+    float NdotL = max(dot(N, L), 0.0);
 
     // BRDF
     vec3 F0 = mix(vec3(0.04), uAlbedo, uMetallic);
@@ -80,6 +102,11 @@ void main() {
     vec3 sss = computeSSS(uWaterDepth, uAlbedo);
 
     // Final color composition
-    vec3 color = shadow * (brdf * uSunColor) + sss * 0.2;
-    FragColor = vec4(color, 1.0);
+    vec3 ambient = 0.3 * albedo;  // Ambient term
+    vec3 diffuse = NdotL * albedo * uSunColor;  // Diffuse term
+    vec3 specular = brdf * uSunColor;  // Specular term
+    
+    vec3 finalColor = ambient + shadow * (diffuse + specular) + (sss * 0.2);
+    
+    FragColor = vec4(finalColor, 1.0);
 }

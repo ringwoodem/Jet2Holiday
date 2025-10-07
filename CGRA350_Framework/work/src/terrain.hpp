@@ -23,6 +23,11 @@ private:
     float m_islandFalloff;
     float m_minHeight;
 
+
+    float m_grassHeight = 5.0f;   // Height where grass ends
+    float m_rockHeight = 10.0f;   // Height where rock starts
+    float m_blendRange = 3.0f;    // Blend transition range
+
     // OpenGL data
     cgra::gl_mesh m_mesh;
     bool m_meshGenerated;
@@ -77,7 +82,16 @@ public:
 
     // Rendering
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color = glm::vec3(0.2f, 0.8f, 0.2f), 
-        const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f));
+        const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f),
+        GLuint grassTexture = 0, GLuint grassNorm = 0, GLuint grassRough = 0);
+
+    // Setters for texture control
+    void setGrassHeight(float height) { m_grassHeight = height; }
+    void setRockHeight(float height) { m_rockHeight = height; }
+    void setBlendRange(float range) { m_blendRange = range; }
+
+    float getGrassHeight() const { return m_grassHeight; }
+    float getRockHeight() const { return m_rockHeight; }
 
     // Update terrain (regenerate if parameters changed)
     void update();
