@@ -52,6 +52,8 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_model.color = vec3(1, 0, 0);
 
 	m_terrain = Terrain(128, 128, 20.0f);
+
+	m_water = Water(64, 100.0f);
 }
 
 
@@ -91,7 +93,6 @@ void Application::render() {
 
 	// draw the model
 	//m_model.draw(view, proj);
-
 	float angle = m_time * sunSpeed;
 	vec3 sunPos = vec3(
 		sunOrbitRadius * cos(angle),
@@ -107,6 +108,14 @@ void Application::render() {
 	);
 
 	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour);
+  
+  static auto lastTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+	lastTime = currentTime;
+
+	m_water.update(deltaTime);
+	m_water.draw(view, proj, m_shader, vec3(0.1f, 0.3f, 0.7f));
 }
 
 
@@ -177,6 +186,36 @@ void Application::renderGUI() {
 		m_terrain.setMinHeight(minHeight);
 		terrainChanged = true;
 	}
+
+	ImGui::Separator();
+	ImGui::Text("Water Settings");
+
+	static float windSpeed = m_water.getWindSpeed();
+	static float water_amp = m_water.getAmplitude();
+	static float damping = m_water.getDampingFactor();
+
+	bool waterChanged = false;
+
+
+	if (ImGui::SliderFloat("Wind Speed", &windSpeed, 5.0f, 30.0f)) {
+		m_water.setWindSpeed(windSpeed);
+		waterChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Wave Amplitude", &amplitude, 0.001f, 0.2f, "%.3f")) {
+		m_water.setAmplitude(water_amp);
+		waterChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Wave Damping", &damping, 0.0001f, 0.01f, "%.4f")) {
+		m_water.setDampingFactor(damping);
+		waterChanged = true;
+	}
+
+	if (ImGui::Button("Reset Water")) {
+		m_water.reset();
+	}
+
 	// finish creating window
 	ImGui::End();
 }
