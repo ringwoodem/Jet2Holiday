@@ -239,7 +239,7 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
         generateMesh();
     }
 
-    glm::mat4 modelview = view; // No additional transform needed
+    glm::mat4 modelview = view * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, 0.0f));
 
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, glm::value_ptr(proj));

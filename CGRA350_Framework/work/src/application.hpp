@@ -1,4 +1,3 @@
-
 #pragma once
 
 // glm
@@ -15,8 +14,6 @@
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
 // including textures for texture mapping etc.
-
-
 
 struct basic_model {
 	GLuint shader = 0;
@@ -40,8 +37,61 @@ private:
 	GLuint m_shader;
 	GLuint m_terrainShader;
 	GLuint m_waterShader;
+	GLuint m_skyboxShader;
+	GLuint m_causticsShader;
+
 	Terrain m_terrain;
 	Water m_water;
+
+	GLuint m_sandTexture;
+
+	GLuint cubemap;
+	GLuint skyboxVAO = 0, skyboxVBO = 0;
+
+	float skyboxVertices[108] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
 
 	GLuint m_grassTexture;
 	GLuint m_grassNormal;
@@ -64,6 +114,7 @@ private:
 
 	// geometry
 	basic_model m_model;
+	cgra::gl_mesh m_sandMesh;
 
 	float m_time = 0.0f; // seconds
 	float sunOrbitRadius = 200.0f;
@@ -89,4 +140,8 @@ public:
 	void keyCallback(int key, int scancode, int action, int mods);
 	void charCallback(unsigned int c);
 	GLuint loadTexture(const std::string& filepath);
+	GLuint loadCubemap(const std::vector<std::string>& faces);
+	void initSkybox();
+	void renderSandPlane(const glm::mat4& view, const glm::mat4& proj, float time, const glm::vec3& sunPos, const glm::vec3& sunColour);
+	void renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cubemap, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunPos, const glm::vec3& sunColour);
 };

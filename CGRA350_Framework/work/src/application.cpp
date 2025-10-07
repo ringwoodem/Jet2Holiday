@@ -21,7 +21,6 @@ using namespace std;
 using namespace cgra;
 using namespace glm;
 
-
 void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	mat4 modelview = view * modelTransform;
 	
@@ -35,7 +34,8 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 
 
 Application::Application(GLFWwindow *window) : m_window(window) {
-	
+	float scene_size = 200.0f;
+
 	shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
 	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
@@ -47,23 +47,78 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	terrain_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//terrain_frag.glsl"));
 	m_terrainShader = terrain_sb.build();
 
+	// water shader
+	shader_builder water_sb;
+	water_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//water_vert.glsl"));
+	water_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//water_frag.glsl"));
+	m_waterShader = water_sb.build();
+
+	// skybox shader
+	shader_builder skybox_sb;
+	skybox_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//skybox_vert.glsl"));
+	skybox_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//skybox_frag.glsl"));
+	m_skyboxShader = skybox_sb.build();
+
+	shader_builder caustics_sb;
+	caustics_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_vert.glsl"));
+	caustics_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_frag.glsl"));
+	m_causticsShader = caustics_sb.build();
+
+	stbi_set_flip_vertically_on_load(false);
+	std::vector<std::string> faces = {
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//px.png"),
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//nx.png"),
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//py.png"),
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//ny.png"),
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//pz.png"),
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//nz.png")
+	};
+	cubemap = loadCubemap(faces);
 
 	m_model.shader = m_shader;
 	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
 	m_model.color = vec3(1, 0, 0);
 
-	m_terrain = Terrain(128, 128, 20.0f);
-	m_water = Water(64, 100.0f);
+	m_terrain = Terrain(128, 128, scene_size);
+	m_water = Water(256, scene_size);
+
+	cgra::mesh_builder mb;
+	float size = scene_size / 2;
+
+	// Vertices (XZ plane at y = -1.0f)
+	mb.push_vertex({ glm::vec3(-size, -1.0f, -size), glm::vec3(0,1,0), glm::vec2(0,0) });
+	mb.push_vertex({ glm::vec3(size, -1.0f, -size), glm::vec3(0,1,0), glm::vec2(1,0) });
+	mb.push_vertex({ glm::vec3(size, -1.0f,  size), glm::vec3(0,1,0), glm::vec2(1,1) });
+	mb.push_vertex({ glm::vec3(-size, -1.0f,  size), glm::vec3(0,1,0), glm::vec2(0,1) });
+
+	// Indices
+	mb.push_index(0); mb.push_index(1); mb.push_index(2);
+	mb.push_index(2); mb.push_index(3); mb.push_index(0);
+
+	m_sandMesh = mb.build();
 
 	m_grassTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/grass.jpg"));
 	m_grassNormal = loadTexture(CGRA_SRCDIR + std::string( "/res/textures/normal.jpg"));
 	m_grassRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/roughness.jpg"));
+	m_sandTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/sand.png"));
+
+	initSkybox();
 
 	if (m_grassTexture == 0 || m_grassNormal == 0 || m_grassRoughness == 0) {
 		std::cerr << "Warning: Some grass textures failed to load" << std::endl;
 	}
 }
 
+void Application::initSkybox() {
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBindVertexArray(0);
+}
 
 void Application::render() {
 	
@@ -83,7 +138,7 @@ void Application::render() {
 	glDepthFunc(GL_LESS);
 
 	// projection matrix
-	mat4 proj = perspective(1.f, float(width) / height, 0.1f, 1000.f);
+	mat4 proj = perspective(glm::radians(60.0f), float(width) / height, 0.1f, 1000.f);
 
 	// view matrix
 	mat4 view = translate(mat4(1), vec3(0, 0, -m_distance))
@@ -91,21 +146,11 @@ void Application::render() {
 		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));
 
 	m_time += 0.016f;
-
-
-	// helpful draw options
-	if (m_show_grid) drawGrid(view, proj);
-	if (m_show_axis) drawAxis(view, proj);
-	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
-
-
-	// draw the model
-	//m_model.draw(view, proj);
 	float angle = m_time * sunSpeed;
 	vec3 sunPos = vec3(
-		sunOrbitRadius * cos(angle),
-		sunHeight * sin(angle) + sunHeight,
-		sunOrbitRadius * sin(angle)
+		sunOrbitRadius * cos(angle),   // X: circle
+		100.0f * sin(angle),           // Y: oscillates from -100 to 100
+		sunOrbitRadius * sin(angle)    // Z: circle
 	);
 
 	float t = clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
@@ -115,6 +160,18 @@ void Application::render() {
 		t
 	);
 
+	// helpful draw options
+	if (m_show_grid) drawGrid(view, proj);
+	if (m_show_axis) drawAxis(view, proj);
+	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
+
+	glDepthFunc(GL_LEQUAL);
+	renderSkybox(m_skyboxShader, skyboxVAO, cubemap, view, proj, sunPos, sunColour);
+	glDepthFunc(GL_LESS);
+
+	renderSandPlane(view, proj, m_time, sunPos, sunColour);
+
+	// draw the model
 	m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture);
   
 	static auto lastTime = std::chrono::high_resolution_clock::now();
@@ -123,7 +180,63 @@ void Application::render() {
 	lastTime = currentTime;
 
 	m_water.update(deltaTime);
-	m_water.draw(view, proj, m_shader, vec3(0.1f, 0.3f, 0.7f));
+	m_water.draw(view, proj, m_waterShader, cubemap, vec3(0.1f, 0.3f, 0.7f));
+
+}
+
+void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, float time, const glm::vec3& sunPos, const glm::vec3& sunColour) {
+	glUseProgram(m_causticsShader);
+
+	// Model matrix for sand plane (identity, or translate if needed)
+	glm::mat4 modelview = view * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+	// Set transformation uniforms
+	glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uModelViewMatrix"), 1, GL_FALSE, glm::value_ptr(modelview));
+	glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
+	glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunPos"), 1, glm::value_ptr(sunPos));
+	glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunColor"), 1, glm::value_ptr(sunColour));
+
+	// Set caustics uniforms (tweak these as needed)
+	glUniform1f(glGetUniformLocation(m_causticsShader, "uTime"), time);
+	glUniform3fv(glGetUniformLocation(m_causticsShader, "uCausticsColor"), 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.8f))); // pale yellow caustics
+	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsIntensity"), 0.78f);
+	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsOffset"), 0.3f);
+	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsScale"), 8.0f);
+	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsSpeed"), 0.5f);
+	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsThickness"), 0.75f);
+
+	// Bind sand texture to texture unit 0
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_sandTexture);
+	glUniform1i(glGetUniformLocation(m_causticsShader, "uTexture"), 0);
+
+	// Draw the sand mesh
+	m_sandMesh.draw();
+}
+
+void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cubemap, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunPos, const glm::vec3& sunColour) {
+	glDepthMask(GL_FALSE);
+	glCullFace(GL_FRONT);
+
+	glUseProgram(skyboxShader);
+
+	glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(view));
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "view"), 1, GL_FALSE, glm::value_ptr(viewNoTranslation));
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+	glUniform3fv(glGetUniformLocation(skyboxShader, "uSunPos"), 1, glm::value_ptr(sunPos));
+	glUniform3fv(glGetUniformLocation(skyboxShader, "uSunColor"), 1, glm::value_ptr(sunColour));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
+	glUniform1i(glGetUniformLocation(skyboxShader, "skybox"), 0);
+
+	glBindVertexArray(skyboxVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+
+	glCullFace(GL_BACK);
+	glDepthMask(GL_TRUE);
 }
 
 
@@ -195,39 +308,38 @@ void Application::renderGUI() {
 		terrainChanged = true;
 	}
 
-	ImGui::Separator();
-	ImGui::Text("Water Settings");
-
-	static float windSpeed = m_water.getWindSpeed();
-	static float water_amp = m_water.getAmplitude();
-	static float damping = m_water.getDampingFactor();
-
-	bool waterChanged = false;
-
-
-	if (ImGui::SliderFloat("Wind Speed", &windSpeed, 5.0f, 30.0f)) {
-		m_water.setWindSpeed(windSpeed);
-		waterChanged = true;
-	}
-
-	if (ImGui::SliderFloat("Wave Amplitude", &amplitude, 0.001f, 0.2f, "%.3f")) {
-		m_water.setAmplitude(water_amp);
-		waterChanged = true;
-	}
-
-	if (ImGui::SliderFloat("Wave Damping", &damping, 0.0001f, 0.01f, "%.4f")) {
-		m_water.setDampingFactor(damping);
-		waterChanged = true;
-	}
-
-	if (ImGui::Button("Reset Water")) {
-		m_water.reset();
-	}
-
 	// finish creating window
 	ImGui::End();
 }
 
+GLuint Application::loadCubemap(const std::vector<std::string>& faces) {
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (GLuint i = 0; i < faces.size(); i++) {
+		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data) {
+			glTexImage2D(
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+				GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+			);
+			stbi_image_free(data);
+		}
+		else {
+			std::cerr << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
 
 void Application::cursorPosCallback(double xpos, double ypos) {
 	if (m_leftMouseDown) {
