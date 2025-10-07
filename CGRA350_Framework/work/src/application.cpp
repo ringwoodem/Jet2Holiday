@@ -140,6 +140,7 @@ void Application::renderGUI() {
 	static int octaves = m_terrain.getOctaves();
 	static float persistence = m_terrain.getPersistence();
 	static float lacunarity = m_terrain.getLacunarity();
+	static float minHeight = m_terrain.getMinHeight();
 
 	bool terrainChanged = false;
 
@@ -172,6 +173,10 @@ void Application::renderGUI() {
 		m_terrain.update();
 	}
 
+	if (ImGui::SliderFloat("Min Height (Water Depth)", &minHeight, -10.0f, 0.0f)) {
+		m_terrain.setMinHeight(minHeight);
+		terrainChanged = true;
+	}
 	// finish creating window
 	ImGui::End();
 }

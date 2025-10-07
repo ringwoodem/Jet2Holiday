@@ -43,8 +43,9 @@ const int Terrain::m_permutation[512] = {
 
 Terrain::Terrain(int width, int height, float scale)
     : m_width(width), m_height(height), m_scale(scale),
-    m_amplitude(10.0f), m_frequency(0.1f), m_octaves(4),
-    m_persistence(0.5f), m_lacunarity(2.0f), m_meshGenerated(false) {
+    m_amplitude(7.544f), m_frequency(0.158f), m_octaves(7),
+    m_persistence(0.453f), m_lacunarity(1.914f), m_islandFalloff(3.0f),
+    m_minHeight(0.0f), m_meshGenerated(false) {
 
     m_heightMap.resize(m_height, std::vector<float>(m_width, 0.0f));
     generateHeightMap();
@@ -116,7 +117,42 @@ void Terrain::generateHeightMap() {
             float worldX = static_cast<float>(x) / static_cast<float>(m_width - 1) * m_scale;
             float worldZ = static_cast<float>(z) / static_cast<float>(m_height - 1) * m_scale;
 
-            m_heightMap[z][x] = perlinNoise(worldX, worldZ);
+            float noiseValue = perlinNoise(worldX, worldZ);
+
+            // Calculate radial falloff for island shape
+            // Normalize coordinates to [-1, 1] range
+            float normX = (static_cast<float>(x) / static_cast<float>(m_width - 1)) * 2.0f - 1.0f;
+            float normZ = (static_cast<float>(z) / static_cast<float>(m_height - 1)) * 2.0f - 1.0f;
+
+            // Calculate distance from center
+            float distanceFromCenter = std::sqrt(normX * normX + normZ * normZ);
+
+            // Create a smoother island falloff with an inner plateau
+            float falloff;
+            if (distanceFromCenter < 0.4f) {
+                // Inner area - mostly flat with full height
+                falloff = 1.0f;
+            }
+            else {
+                // Outer area - smooth falloff to edges
+                float normalizedDist = (distanceFromCenter - 0.4f) / 0.6f;
+                falloff = std::max(0.0f, 1.0f - normalizedDist);
+                falloff = std::pow(falloff, m_islandFalloff);
+            }
+
+            // Apply falloff to the noise value
+            float finalHeight = noiseValue * falloff;
+
+            // Redistribute terrain heights for more natural islands
+            // This creates flatter beaches and steeper mountains
+            if (finalHeight > 0.0f) {
+                // Apply power curve to create more dramatic peaks
+                finalHeight = std::pow(finalHeight / m_amplitude, 1.3f) * m_amplitude;
+            }
+
+            // Clamp the minimum height to prevent deep underwater terrain
+            // This allows terrain to go high but limits how deep it can go
+            m_heightMap[z][x] = std::max(finalHeight, m_minHeight);
         }
     }
 }

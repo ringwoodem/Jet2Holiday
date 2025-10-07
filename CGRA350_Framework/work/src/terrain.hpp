@@ -20,6 +20,8 @@ private:
     int m_octaves;
     float m_persistence;
     float m_lacunarity;
+    float m_islandFalloff;
+    float m_minHeight;
 
     // OpenGL data
     cgra::gl_mesh m_mesh;
@@ -43,7 +45,7 @@ private:
     static const int m_permutation[512];
 
 public:
-    Terrain(int width = 128, int height = 128, float scale = 100.0f);
+    Terrain(int width = 128, int height = 128, float scale = 20.0f);
     ~Terrain() = default;
 
     // Getters and setters
@@ -55,6 +57,8 @@ public:
     void setOctaves(int octaves) { m_octaves = octaves; m_meshGenerated = false; }
     void setPersistence(float persistence) { m_persistence = persistence; m_meshGenerated = false; }
     void setLacunarity(float lacunarity) { m_lacunarity = lacunarity; m_meshGenerated = false; }
+    void setIslandFalloff(float falloff) { m_islandFalloff = falloff; m_meshGenerated = false; }
+    void setMinHeight(float minHeight) { m_minHeight = minHeight; m_meshGenerated = false; }
 
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
@@ -64,6 +68,8 @@ public:
     int getOctaves() const { return m_octaves; }
     float getPersistence() const { return m_persistence; }
     float getLacunarity() const { return m_lacunarity; }
+    float getIslandFalloff() const { return m_islandFalloff; }
+    float getMinHeight() const { return m_minHeight; }
 
     // Height map access
     float getHeightAt(int x, int z) const;
