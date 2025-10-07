@@ -39,8 +39,14 @@ private:
 
 	GLuint m_shader;
 	GLuint m_terrainShader;
+	GLuint m_waterShader;
 	Terrain m_terrain;
 	Water m_water;
+
+	GLuint m_grassTexture;
+	GLuint m_grassNormal;
+	GLuint m_grassRoughness;
+
 
 	// oribital camera
 	float m_pitch = .86;
@@ -82,4 +88,5 @@ public:
 	void scrollCallback(double xoffset, double yoffset);
 	void keyCallback(int key, int scancode, int action, int mods);
 	void charCallback(unsigned int c);
+	GLuint loadTexture(const std::string& filepath);
 };

@@ -47,13 +47,21 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	terrain_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//terrain_frag.glsl"));
 	m_terrainShader = terrain_sb.build();
 
+
 	m_model.shader = m_shader;
 	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
 	m_model.color = vec3(1, 0, 0);
 
 	m_terrain = Terrain(128, 128, 20.0f);
-
 	m_water = Water(64, 100.0f);
+
+	m_grassTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/grass.jpg"));
+	m_grassNormal = loadTexture(CGRA_SRCDIR + std::string( "/res/textures/normal.jpg"));
+	m_grassRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/roughness.jpg"));
+
+	if (m_grassTexture == 0 || m_grassNormal == 0 || m_grassRoughness == 0) {
+		std::cerr << "Warning: Some grass textures failed to load" << std::endl;
+	}
 }
 
 
@@ -107,9 +115,9 @@ void Application::render() {
 		t
 	);
 
-	m_terrain.draw(view, proj, m_shader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour);
+	m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture);
   
-  static auto lastTime = std::chrono::high_resolution_clock::now();
+	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 	lastTime = currentTime;
@@ -264,4 +272,28 @@ void Application::keyCallback(int key, int scancode, int action, int mods) {
 
 void Application::charCallback(unsigned int c) {
 	(void)c; // currently un-used
+}
+
+
+GLuint Application::loadTexture(const std::string& filepath) {
+	try {
+		// Load image - constructor handles everything
+		cgra::rgba_image img(filepath);
+
+		// Set wrapping mode to repeat for tiling
+		img.wrap = glm::vec<2, GLenum>(GL_REPEAT, GL_REPEAT);
+
+		// Upload to GPU - uploadTexture() handles all OpenGL calls
+		GLuint texture = img.uploadTexture();
+
+		std::cout << "Loaded texture: " << filepath << " ("
+			<< img.size.x << "x" << img.size.y << ")" << std::endl;
+
+		return texture;
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Failed to load texture: " << filepath << std::endl;
+		std::cerr << "Error: " << e.what() << std::endl;
+		return 0;
+	}
 }
