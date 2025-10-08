@@ -9,6 +9,8 @@
 #include "cgra/cgra_mesh.hpp"
 
 #include "terrain.hpp"
+#include "camerapov.hpp"
+#include "Cockpit.hpp"
 #include "water.hpp"
 #include "tree.hpp"
 
@@ -40,6 +42,7 @@ private:
 	GLuint m_waterShader;
 	GLuint m_skyboxShader;
 	GLuint m_causticsShader;
+	GLuint m_treeShader;
 
 	Terrain m_terrain;
 	Water m_water;
@@ -103,11 +106,21 @@ private:
 	GLuint m_grassNormal;
 	GLuint m_grassRoughness;
 
+	GLuint m_trunkTexture;
+	GLuint m_trunkNormal;
+	GLuint m_trunkRoughness;
 
 	// oribital camera
-	float m_pitch = .86;
-	float m_yaw = -.86;
-	float m_distance = 20;
+	//float m_pitch = .86;
+	//float m_yaw = -.86;
+	//float m_distance = 20;
+    
+    PovCamera m_cam;
+    Cockpit  m_panel;
+    bool  m_rightMouseDown = false;
+    bool m_firstMouse = true;
+    double m_lastX = 0.0;
+    double m_lastY = 0.0;
 
 	// last input
 	bool m_leftMouseDown = false;
