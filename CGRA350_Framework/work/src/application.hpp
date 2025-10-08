@@ -40,6 +40,7 @@ private:
 	GLuint m_waterShader;
 	GLuint m_skyboxShader;
 	GLuint m_causticsShader;
+	GLuint m_treeShader;
 
 	Terrain m_terrain;
 	Water m_water;
@@ -103,6 +104,9 @@ private:
 	GLuint m_grassNormal;
 	GLuint m_grassRoughness;
 
+	GLuint m_trunkTexture;
+	GLuint m_trunkNormal;
+	GLuint m_trunkRoughness;
 
 	// oribital camera
 	float m_pitch = .86;

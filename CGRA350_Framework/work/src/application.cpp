@@ -64,6 +64,11 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	caustics_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_frag.glsl"));
 	m_causticsShader = caustics_sb.build();
 
+	shader_builder tree_sb;
+	tree_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_vert.glsl"));
+	tree_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_frag.glsl"));
+	m_treeShader = tree_sb.build();
+
 	stbi_set_flip_vertically_on_load(false);
 	std::vector<std::string> faces = {
 		CGRA_SRCDIR + std::string("//res//textures//cubemap//px.png"),
@@ -112,6 +117,10 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_grassNormal = loadTexture(CGRA_SRCDIR + std::string( "/res/textures/normal.jpg"));
 	m_grassRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/roughness.jpg"));
 	m_sandTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/sand.png"));
+
+	m_trunkTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/tree_trunk/diffuse.png"));
+	m_trunkNormal = loadTexture(CGRA_SRCDIR + std::string("/res/textures/tree_trunk/normal.png"));
+	m_trunkRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/tree_trunk/rough.png"));
 
 	initSkybox();
 
@@ -170,11 +179,6 @@ void Application::render() {
 		vec3(1.0f, 1.0f, 1.0f),
 		t
 	);
-    
-    // Draw trees
-    for (auto& tree : m_trees) {
-        tree.draw(view, proj, m_shader);
-    }
 
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
@@ -190,6 +194,11 @@ void Application::render() {
 	// draw the model
 	m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness);
   
+	// Draw trees
+	for (auto& tree : m_trees) {
+		tree.draw(view, proj, m_treeShader, sunPos, sunColour, m_trunkTexture, m_trunkNormal, m_trunkRoughness);
+	}
+
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
