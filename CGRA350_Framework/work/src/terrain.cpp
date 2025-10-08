@@ -252,7 +252,6 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glm::vec3 cameraPos = glm::vec3(glm::inverse(view)[3]);
     float sunRadius = 10.0f;
     glm::vec3 terrainAlbedo = color;
-    float terrainRoughness = 0.7f;
     float terrainMetallic = 0.0f;
     float terrainWaterDepth = 2.0f;
     float windIntensity = 1.0f;
@@ -262,36 +261,25 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColour));
     glUniform1f(glGetUniformLocation(shader, "uSunRadius"), sunRadius);
     glUniform3fv(glGetUniformLocation(shader, "uAlbedo"), 1, glm::value_ptr(terrainAlbedo));
-    glUniform1f(glGetUniformLocation(shader, "uRoughness"), terrainRoughness);
     glUniform1f(glGetUniformLocation(shader, "uMetallic"), terrainMetallic);
     glUniform1f(glGetUniformLocation(shader, "uWaterDepth"), terrainWaterDepth);
     glUniform1f(glGetUniformLocation(shader, "uWindIntensity"), windIntensity);
 
 
-    if (grassDiff != 0) {
-        // Bind grass texture to texture unit 0
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, grassDiff);
-        glUniform1i(glGetUniformLocation(shader, "uGrassTexture"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, grassDiff);
+    glUniform1i(glGetUniformLocation(shader, "uGrassTexture"), 0);
 
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, grassNorm);
-        glUniform1i(glGetUniformLocation(shader, "uGrassNormal"), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, grassNorm);
+    glUniform1i(glGetUniformLocation(shader, "uGrassNormal"), 1);
 
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, grassRough);
+    glUniform1i(glGetUniformLocation(shader, "uGrassRoughness"), 2);
 
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, grassRough);
-        glUniform1i(glGetUniformLocation(shader, "uGrassRoughness"), 2);
-
-        // Enable texture mode
-        glUniform1i(glGetUniformLocation(shader, "uUseTextures"), 1);
-
-        // Height-based blending parameters
-        glUniform1f(glGetUniformLocation(shader, "uGrassHeight"), m_grassHeight);
-    }
-    else {
-        glUniform1i(glGetUniformLocation(shader, "uUseTextures"), 0);
-    }
+    glUniform1i(glGetUniformLocation(shader, "uUseTextures"), 1);
+    glUniform1f(glGetUniformLocation(shader, "uGrassHeight"), m_grassHeight);
 
     m_mesh.draw();
 

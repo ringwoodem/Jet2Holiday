@@ -79,8 +79,8 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
 	m_model.color = vec3(1, 0, 0);
 
-	m_terrain = Terrain(128, 128, scene_size);
-	m_water = Water(256, scene_size);
+	m_terrain = Terrain(512, 512, scene_size);
+	m_water = Water(2048, scene_size);
 
 	cgra::mesh_builder mb;
 	float size = scene_size / 2;
@@ -172,7 +172,7 @@ void Application::render() {
 	renderSandPlane(view, proj, m_time, sunPos, sunColour);
 
 	// draw the model
-	m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture);
+	m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness);
   
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();

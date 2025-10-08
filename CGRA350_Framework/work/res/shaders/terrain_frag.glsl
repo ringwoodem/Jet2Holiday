@@ -2,7 +2,7 @@
 
 in vec3 vWorldPos;
 in vec3 vNormal;
-in vec2 vTexCoord;
+in vec2 vUv;
 in float vHeight;
 
 uniform vec3 uCameraPos;
@@ -10,17 +10,17 @@ uniform vec3 uSunPos;
 uniform vec3 uSunColor;
 uniform float uSunRadius;
 uniform vec3 uAlbedo;
-uniform float uRoughness;
 uniform float uMetallic;
 uniform float uWaterDepth;
 uniform float uWindIntensity;
 
 uniform sampler2D uGrassTexture;
 uniform sampler2D uRockTexture;
-uniform int uUseTextures;
 uniform float uGrassHeight;
 uniform float uRockHeight;
 uniform float uBlendRange;
+uniform sampler2D uGrassNormal;
+uniform sampler2D uGrassRoughness;
 
 
 out vec4 FragColor;
@@ -75,19 +75,19 @@ vec3 computeSSS(float depth, vec3 color) {
 }
 
 void main() {
+    vec2 tiledUV = vUv * 10.0;
+    vec3 grassColor = texture(uGrassTexture, tiledUV).rgb;
+    vec3 albedo = grassColor;
+    
     vec3 N = normalize(vNormal);
+    vec3 grassNormal = texture(uGrassNormal, tiledUV).rgb * 2.0 - 1.0;
+    N = normalize(mix(N, grassNormal, 0.5)); // Blend geometry and texture normal
+
     vec3 V = normalize(uCameraPos - vWorldPos);
     vec3 L = normalize(uSunPos - vWorldPos);
 
-    vec3 albedo = uAlbedo;
-
-     if (uUseTextures == 1) {
-        // Tile the texture (adjust multiplier to control texture scale)
-        vec2 tiledUV = vTexCoord * 10.0;
-        
-        // Sample grass texture only
-        albedo = texture(uGrassTexture, tiledUV).rgb;
-    }
+    float grassRoughness = texture(uGrassRoughness, tiledUV).r;
+    float roughness = grassRoughness; // Use roughness map
 
     // Shadow (placeholder, not true PCSS)
     float shadow = 1.0; // No shadow map
@@ -96,13 +96,13 @@ void main() {
 
     // BRDF
     vec3 F0 = mix(vec3(0.04), uAlbedo, uMetallic);
-    vec3 brdf = cookTorranceBRDF(N, V, L, F0, uRoughness);
+    vec3 brdf = cookTorranceBRDF(N, V, L, F0, roughness);
 
     // Subsurface scattering (for water)
     vec3 sss = computeSSS(uWaterDepth, uAlbedo);
 
     // Final color composition
-    vec3 ambient = 0.3 * albedo;  // Ambient term
+    vec3 ambient = 0.5 * albedo;  // Ambient term
     vec3 diffuse = NdotL * albedo * uSunColor;  // Diffuse term
     vec3 specular = brdf * uSunColor;  // Specular term
     
