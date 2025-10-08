@@ -43,7 +43,7 @@ const int Terrain::m_permutation[512] = {
 
 Terrain::Terrain(int width, int height, float scale)
     : m_width(width), m_height(height), m_scale(scale),
-    m_amplitude(7.544f), m_frequency(0.158f), m_octaves(7),
+    m_amplitude(7.544f), m_frequency(0.02f), m_octaves(7),
     m_persistence(0.453f), m_lacunarity(1.914f), m_islandFalloff(3.0f),
     m_minHeight(0.0f), m_meshGenerated(false) {
 

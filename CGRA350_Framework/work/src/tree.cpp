@@ -481,7 +481,8 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
     }
 }
 
-void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader) {
+void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& sunPos, const glm::vec3& sunColour,
+    GLuint trunkDiffuse, GLuint trunkNormal, GLuint trunkRoughness) {
     if (!m_meshGenerated) {
         std::cout << "=== GENERATING TREE WITH BRANCHES ===" << std::endl;
         std::cout << "Position: (" << m_position.x << ", " << m_position.y << ", " << m_position.z << ")" << std::endl;
@@ -515,11 +516,26 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader) {
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, glm::value_ptr(proj));
     glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, glm::value_ptr(modelview));
+
+    glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
+    glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColour));
     
     // Draw trunk
     glm::vec3 trunkColor(0.4f, 0.25f, 0.15f);
     glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, glm::value_ptr(trunkColor));
     if (m_trunkMesh.vbo != 0 && m_trunkMesh.index_count > 0) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, trunkDiffuse);
+        glUniform1i(glGetUniformLocation(shader, "uTrunkDiffuse"), 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, trunkNormal);
+        glUniform1i(glGetUniformLocation(shader, "uTrunkNormal"), 1);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, trunkRoughness);
+        glUniform1i(glGetUniformLocation(shader, "uTrunkRoughness"), 2);
+
         m_trunkMesh.draw();
     }
     
