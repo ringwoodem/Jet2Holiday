@@ -91,7 +91,9 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	# don't export by default
 	add_compile_options(-fvisibility=hidden)
 	# Threading support, enable SSE2
-	add_compile_options(-pthread -msse2)
+	if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    		add_compile_options(-msse2)
+	endif()
 	# Promote missing return to error
 	add_compile_options(-Werror=return-type)
 	# enable coloured output if gcc >= 4.9
@@ -107,8 +109,10 @@ elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(Apple)?Clang$")
 	# add_compile_options(-std=c++1y -Wall -Wextra -pedantic)
 	# don't export by default
 	add_compile_options(-fvisibility=hidden)
-	# Threading support, enable SSE2
-	add_compile_options(-pthread -msse2)
+	# Threading support, enable SSE2# Threading support, enable SSE2
+	if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    		add_compile_options(-msse2)
+	endif()
 	# Promote missing return to error
 	add_compile_options(-Werror=return-type)
 endif()

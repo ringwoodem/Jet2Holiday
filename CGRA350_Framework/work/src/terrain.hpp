@@ -20,6 +20,13 @@ private:
     int m_octaves;
     float m_persistence;
     float m_lacunarity;
+    float m_islandFalloff;
+    float m_minHeight;
+
+
+    float m_grassHeight = 5.0f;   // Height where grass ends
+    float m_rockHeight = 10.0f;   // Height where rock starts
+    float m_blendRange = 3.0f;    // Blend transition range
 
     // OpenGL data
     cgra::gl_mesh m_mesh;
@@ -43,7 +50,7 @@ private:
     static const int m_permutation[512];
 
 public:
-    Terrain(int width = 128, int height = 128, float scale = 100.0f);
+    Terrain(int width = 128, int height = 128, float scale = 20.0f);
     ~Terrain() = default;
 
     // Getters and setters
@@ -55,6 +62,8 @@ public:
     void setOctaves(int octaves) { m_octaves = octaves; m_meshGenerated = false; }
     void setPersistence(float persistence) { m_persistence = persistence; m_meshGenerated = false; }
     void setLacunarity(float lacunarity) { m_lacunarity = lacunarity; m_meshGenerated = false; }
+    void setIslandFalloff(float falloff) { m_islandFalloff = falloff; m_meshGenerated = false; }
+    void setMinHeight(float minHeight) { m_minHeight = minHeight; m_meshGenerated = false; }
 
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
@@ -64,6 +73,8 @@ public:
     int getOctaves() const { return m_octaves; }
     float getPersistence() const { return m_persistence; }
     float getLacunarity() const { return m_lacunarity; }
+    float getIslandFalloff() const { return m_islandFalloff; }
+    float getMinHeight() const { return m_minHeight; }
 
     // Height map access
     float getHeightAt(int x, int z) const;
@@ -71,7 +82,16 @@ public:
 
     // Rendering
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color = glm::vec3(0.2f, 0.8f, 0.2f), 
-        const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f));
+        const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f),
+        GLuint grassTexture = 0, GLuint grassNorm = 0, GLuint grassRough = 0);
+
+    // Setters for texture control
+    void setGrassHeight(float height) { m_grassHeight = height; }
+    void setRockHeight(float height) { m_rockHeight = height; }
+    void setBlendRange(float range) { m_blendRange = range; }
+
+    float getGrassHeight() const { return m_grassHeight; }
+    float getRockHeight() const { return m_rockHeight; }
 
     // Update terrain (regenerate if parameters changed)
     void update();
