@@ -68,12 +68,6 @@ vec3 cookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 F0, float roughness) {
     return (NDF * G * F) / denom;
 }
 
-// --- Subsurface scattering (simple) ---
-vec3 computeSSS(float depth, vec3 color) {
-    float scatter = exp(-depth * 0.1);
-    return color * scatter;
-}
-
 void main() {
     vec2 tiledUV = vUv * 10.0;
     vec3 grassColor = texture(uGrassTexture, tiledUV).rgb;
@@ -98,15 +92,12 @@ void main() {
     vec3 F0 = mix(vec3(0.04), uAlbedo, uMetallic);
     vec3 brdf = cookTorranceBRDF(N, V, L, F0, roughness);
 
-    // Subsurface scattering (for water)
-    vec3 sss = computeSSS(uWaterDepth, uAlbedo);
-
     // Final color composition
     vec3 ambient = 0.5 * albedo;  // Ambient term
     vec3 diffuse = NdotL * albedo * uSunColor;  // Diffuse term
     vec3 specular = brdf * uSunColor;  // Specular term
     
-    vec3 finalColor = ambient + shadow * (diffuse + specular) + (sss * 0.2);
+    vec3 finalColor = ambient + shadow * (diffuse + specular);
     
     FragColor = vec4(finalColor, 1.0);
 }

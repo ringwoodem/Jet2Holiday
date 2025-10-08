@@ -122,9 +122,9 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_grassRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/roughness.jpg"));
 	m_sandTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/sand.png"));
 
-	m_trunkTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/tree_trunk/diffuse.png"));
-	m_trunkNormal = loadTexture(CGRA_SRCDIR + std::string("/res/textures/tree_trunk/normal.png"));
-	m_trunkRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/tree_trunk/rough.png"));
+	m_trunkTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_diff_4k.jpg"));
+	m_trunkNormal = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_nor_gl_4k.jpg"));
+	m_trunkRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_rough_4k.jpg"));
 
 	initSkybox();
 

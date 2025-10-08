@@ -25,7 +25,7 @@ void main() {
     float NdotL = max(dot(N, L), 0.0);
     vec3 albedo = trunkColor * vColor; // Tint texture by vertex color if desired
 
-    vec3 ambient = 0.3 * albedo;
+    vec3 ambient = 0.5 * albedo;
     vec3 diffuse = NdotL * albedo * uSunColor;
 
     vec3 finalColor = ambient + diffuse;
