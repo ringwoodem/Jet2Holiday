@@ -10,6 +10,8 @@
 #include "cgra/cgra_mesh.hpp"
 
 #include "terrain.hpp"
+#include "camerapov.hpp"
+#include "Cockpit.hpp"
 
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
@@ -41,9 +43,16 @@ private:
 	Terrain m_terrain;
 
 	// oribital camera
-	float m_pitch = .86;
-	float m_yaw = -.86;
-	float m_distance = 20;
+	//float m_pitch = .86;
+	//float m_yaw = -.86;
+	//float m_distance = 20;
+    
+    PovCamera m_cam;
+    Cockpit  m_panel;
+    bool  m_rightMouseDown = false;
+    bool m_firstMouse = true;
+    double m_lastX = 0.0;
+    double m_lastY = 0.0;
 
 	// last input
 	bool m_leftMouseDown = false;

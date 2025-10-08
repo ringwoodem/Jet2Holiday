@@ -40,6 +40,10 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
 	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
 	m_shader = sb.build();
+    m_panel.init(m_shader);
+    m_cam.yawDeg = 90.0f;
+    //m_panel.setPanelZ(5.0f);
+    m_panel.setPanelZ(0.2f);
 
 	// terrain shader
 	shader_builder terrain_sb;
@@ -56,13 +60,20 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 
 
 void Application::render() {
-	
+	//temp
+    int winW, winH;  glfwGetWindowSize(m_window, &winW, &winH);
+    int fbW,  fbH;   glfwGetFramebufferSize(m_window, &fbW, &fbH);
+    
+    glViewport(0, 0, fbW, fbH);
+    float aspect = (fbH > 0) ? float(fbW) / float(fbH) : 1.0f;
+    
+    
 	// retrieve the window hieght
 	int width, height;
 	glfwGetFramebufferSize(m_window, &width, &height); 
 
 	m_windowsize = vec2(width, height); // update window size
-	glViewport(0, 0, width, height); // set the viewport to draw to the entire window
+	//glViewport(0, 0, width, height); // set the viewport to draw to the entire window
 
 	// clear the back-buffer
 	glClearColor(0.3f, 0.3f, 0.4f, 1.0f);
@@ -72,15 +83,29 @@ void Application::render() {
 	glEnable(GL_DEPTH_TEST); 
 	glDepthFunc(GL_LESS);
 
-	// projection matrix
+	/** projection matrix
 	mat4 proj = perspective(1.f, float(width) / height, 0.1f, 1000.f);
 
 	// view matrix
 	mat4 view = translate(mat4(1), vec3(0, 0, -m_distance))
 		* rotate(mat4(1), m_pitch, vec3(1, 0, 0))
-		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));
+		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));*/
+    
+    //camera
+    
+    //float aspect = (height > 0) ? float(width)/float(height) : 1.0f;
+    m_cam.compute(aspect);
+    mat4 proj = m_cam.proj;
+    mat4 view = m_cam.view;
 
+    bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
+    m_panel.frame(winW, winH, m_mousePosition, leftDownScene, view, proj, m_cam);
+
+    //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
+    //m_panel.frame(width, height, m_mousePosition, leftDownScene, view, proj, m_cam);
+    
 	m_time += 0.016f;
+    
 
 
 	// helpful draw options
@@ -99,7 +124,7 @@ void Application::render() {
 		sunOrbitRadius * sin(angle)
 	);
 
-	float t = clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
+	float t = glm::clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
 	vec3 sunColour = mix(
 		vec3(1.0f, 0.5f, 0.2f),
 		vec3(1.0f, 1.0f, 1.0f),
@@ -119,9 +144,9 @@ void Application::renderGUI() {
 
 	// display current camera parameters
 	ImGui::Text("Application %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	ImGui::SliderFloat("Pitch", &m_pitch, -pi<float>() / 2, pi<float>() / 2, "%.2f");
-	ImGui::SliderFloat("Yaw", &m_yaw, -pi<float>(), pi<float>(), "%.2f");
-	ImGui::SliderFloat("Distance", &m_distance, 0, 100, "%.2f", 2.0f);
+	//ImGui::SliderFloat("Pitch", &m_pitch, -pi<float>() / 2, pi<float>() / 2, "%.2f");
+	//ImGui::SliderFloat("Yaw", &m_yaw, -pi<float>(), pi<float>(), "%.2f");
+	//ImGui::SliderFloat("Distance", &m_distance, 0, 100, "%.2f", 2.0f);
 
 	// helpful drawing options
 	ImGui::Checkbox("Show axis", &m_show_axis);
@@ -178,38 +203,42 @@ void Application::renderGUI() {
 
 
 void Application::cursorPosCallback(double xpos, double ypos) {
-	if (m_leftMouseDown) {
-		vec2 whsize = m_windowsize / 2.0f;
 
-		// clamp the pitch to [-pi/2, pi/2]
-		m_pitch += float(acos(glm::clamp((m_mousePosition.y - whsize.y) / whsize.y, -1.0f, 1.0f))
-			- acos(glm::clamp((float(ypos) - whsize.y) / whsize.y, -1.0f, 1.0f)));
-		m_pitch = float(glm::clamp(m_pitch, -pi<float>() / 2, pi<float>() / 2));
-
-		// wrap the yaw to [-pi, pi]
-		m_yaw += float(acos(glm::clamp((m_mousePosition.x - whsize.x) / whsize.x, -1.0f, 1.0f))
-			- acos(glm::clamp((float(xpos) - whsize.x) / whsize.x, -1.0f, 1.0f)));
-		if (m_yaw > pi<float>()) m_yaw -= float(2 * pi<float>());
-		else if (m_yaw < -pi<float>()) m_yaw += float(2 * pi<float>());
-	}
-
-	// updated mouse position
-	m_mousePosition = vec2(xpos, ypos);
+    if (m_rightMouseDown) {
+        if (m_firstMouse) { m_lastX = xpos; m_lastY = ypos; m_firstMouse = false; }
+        double dx = xpos - m_lastX, dy = ypos - m_lastY;
+        m_lastX = xpos; m_lastY = ypos;
+        m_cam.mouseLook(float(dx), float(dy));
+    }
+    m_mousePosition = glm::vec2(xpos, ypos);
 }
 
 
 void Application::mouseButtonCallback(int button, int action, int mods) {
-	(void)mods; // currently un-used
+	/**(void)mods; // currently un-used
 
 	// capture is left-mouse down
 	if (button == GLFW_MOUSE_BUTTON_LEFT)
-		m_leftMouseDown = (action == GLFW_PRESS); // only other option is GLFW_RELEASE
+		m_leftMouseDown = (action == GLFW_PRESS); // only other option is GLFW_RELEASE*/
+    
+    (void)mods;
+    if (button == GLFW_MOUSE_BUTTON_LEFT){
+        m_leftMouseDown = (action == GLFW_PRESS);
+    }
+    
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        m_rightMouseDown = (action == GLFW_PRESS);
+        m_firstMouse = true;
+        glfwSetInputMode(m_window, GLFW_CURSOR, m_rightMouseDown ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        }
 }
 
 
 void Application::scrollCallback(double xoffset, double yoffset) {
-	(void)xoffset; // currently un-used
-	m_distance *= pow(1.1f, -yoffset);
+	//(void)xoffset; // currently un-used
+	//m_distance *= pow(1.1f, -yoffset);
+    
+    m_cam.fovDeg = std::clamp(m_cam.fovDeg - float(yoffset) * 2.0f, 30.0f, 100.0f);
 }
 
 
