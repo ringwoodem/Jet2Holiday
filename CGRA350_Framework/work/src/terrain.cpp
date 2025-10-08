@@ -233,6 +233,34 @@ float Terrain::getHeightAtWorld(float x, float z) const {
     return getHeightAt(mapX, mapZ);
 }
 
+glm::vec3 Terrain::getNormalAtWorld(float worldX, float worldZ) const {
+    // Convert world coordinates to grid coordinates
+    float gridX = (worldX / m_scale + 0.5f) * m_width;
+    float gridZ = (worldZ / m_scale + 0.5f) * m_height;
+    
+    int x0 = (int)floor(gridX);
+    int z0 = (int)floor(gridZ);
+    
+    // Clamp to valid range
+    if (x0 < 0 || x0 >= m_width - 1 || z0 < 0 || z0 >= m_height - 1) {
+        return glm::vec3(0, 1, 0); // Default up vector
+    }
+    
+    // Get heights at corners
+    float h00 = m_heightMap[z0][x0];
+    float h10 = m_heightMap[z0][x0 + 1];
+    float h01 = m_heightMap[z0 + 1][x0];
+    float h11 = m_heightMap[z0 + 1][x0 + 1];
+
+    
+    // Calculate normal using cross product of terrain edges
+    float cellSize = m_scale / m_width;
+    glm::vec3 v1(cellSize, h10 - h00, 0);
+    glm::vec3 v2(0, h01 - h00, cellSize);
+    
+    return glm::normalize(glm::cross(v1, v2));
+}
+
 void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour,
     GLuint grassDiff, GLuint grassNorm, GLuint grassRough) {
     if (!m_meshGenerated) {

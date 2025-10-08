@@ -43,13 +43,13 @@ struct LeafParameters {
 struct TreeParameters {
     // Overall shape
     float shape = 70.0f;            // Overall tree shape (conical=0, spherical=7, etc)
-    float baseSize = 4.4f;         // Radius of trunk base
-    float scale = 130.0f;           // Overall tree height
+    float baseSize = 0.10f;         // Radius of trunk base
+    float scale = 5.0f;           // Overall tree height
     float scaleV = 30.0f;           // Height variance
     
     // Trunk specific
     int levels = 3;                // Number of branch levels (0=trunk, 1=branches, 2=twigs)
-    float ratio = 0.15f;          // Ratio of trunk radius to height
+    float ratio = 0.015f;          // Ratio of trunk radius to height
     float ratioPower = 10.2f;       // How taper changes with height
     float flare = 5.6f;            // Base flare (trunk widening at base)
     
@@ -70,11 +70,11 @@ class Tree {
 private:
     TreeParameters m_params;
     glm::vec3 m_position;
+    glm::vec3 m_rotation;  // ADD THIS - rotation for terrain alignment
     cgra::gl_mesh m_trunkMesh;
     cgra::gl_mesh m_branchesMesh;
     cgra::gl_mesh m_leavesMesh;
     bool m_meshGenerated;
-    
     
     struct StemSegment {
         glm::vec3 position;
@@ -113,7 +113,6 @@ private:
     void generateMeshFromSegments();
     void generateLeavesMesh();
     
-    // Add to the private section of Tree class in tree.hpp:
     void createLeaf(cgra::mesh_builder& mb, const glm::vec3& position,
                    const glm::vec3& stemDir, const glm::quat& stemRot, float rotAngle);
     void createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
@@ -133,4 +132,10 @@ public:
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader);
     
     TreeParameters& getParameters() { return m_params; }
+    
+    void setRotation(const glm::vec3& rotation) {
+        m_rotation = rotation;
+        m_meshGenerated = false;
+    }
+    glm::vec3 getRotation() const { return m_rotation; }
 };

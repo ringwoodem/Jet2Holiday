@@ -48,6 +48,8 @@ private:
     std::vector<Tree> m_trees;
     TreeParameters m_treeParams;
     bool m_showTrees = true;
+    void generateTreePositions(int numClusters = 5, int treesPerCluster = 5);
+
 
 	GLuint m_sandTexture;
 

@@ -15,6 +15,7 @@ static std::mt19937 rng(12345); // Fixed seed for consistency
 Tree::Tree(const glm::vec3& position)
     : m_position(position)
     , m_meshGenerated(false)
+    , m_rotation(0.0f)
 {
     m_params.scale = 10.0f;
     m_params.baseSize = 0.15f;
@@ -497,7 +498,16 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader) {
         std::cout << "Branch mesh VBO: " << m_branchesMesh.vbo << ", indices: " << m_branchesMesh.index_count << std::endl;
     }
     
+    // Create model matrix with position and rotation
     glm::mat4 model = glm::translate(glm::mat4(1.0f), m_position);
+    
+    // Apply rotation to align with terrain
+    if (glm::length(m_rotation) > 0.001f) {
+        model = glm::rotate(model, m_rotation.x, glm::vec3(1, 0, 0)); // Pitch
+        model = glm::rotate(model, m_rotation.y, glm::vec3(0, 1, 0)); // Yaw
+        model = glm::rotate(model, m_rotation.z, glm::vec3(0, 0, 1)); // Roll
+    }
+    
     glm::mat4 modelview = view * model;
     
     glUseProgram(shader);
@@ -524,3 +534,5 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader) {
         m_leavesMesh.draw();
     }
 }
+
+

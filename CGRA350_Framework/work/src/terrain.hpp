@@ -79,6 +79,8 @@ public:
     // Height map access
     float getHeightAt(int x, int z) const;
     float getHeightAtWorld(float x, float z) const;
+    
+    glm::vec3 getNormalAtWorld(float worldX, float worldZ) const;
 
     // Rendering
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color = glm::vec3(0.2f, 0.8f, 0.2f), 
