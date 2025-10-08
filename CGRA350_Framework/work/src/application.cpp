@@ -15,6 +15,12 @@
 #include "cgra/cgra_image.hpp"
 #include "cgra/cgra_shader.hpp"
 #include "cgra/cgra_wavefront.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
+
+#include <random>
+
 
 
 using namespace std;
@@ -90,17 +96,71 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 
 	m_terrain = Terrain(512, 512, scene_size);
 	m_water = Water(2048, scene_size);
-
+    
+    
+   m_showTrees = true;
+//    int numTrees = 50;
+//
     std::cout << "Creating trees..." << std::endl;
-    for (int i = 0; i < 5; i++) {
-        glm::vec3 pos(
-            (i - 2) * 15.0f,
-            0.0f,
-            -20.0f
-        );
-        Tree tree(pos);
-        m_trees.push_back(tree);
-    }
+
+        std::mt19937 rng(std::random_device{}());
+        std::uniform_real_distribution<float> distX(-scene_size / 2.0f, scene_size / 2.0f);
+        std::uniform_real_distribution<float> distZ(-scene_size / 2.0f, scene_size / 2.0f);
+
+        int numTrees = 100;
+        float waterLevel = 0.0f;
+        float minHeightAboveWater = 0.5f;
+
+        int treesPlaced = 0;
+        int maxAttempts = numTrees * 10;
+
+        for (int attempt = 0; attempt < maxAttempts && treesPlaced < numTrees; attempt++) {
+            float x = distX(rng);
+            float z = distZ(rng);
+            
+            // Get terrain height and normal at this position
+            float terrainHeight = m_terrain.getHeightAtWorld(x, z);
+            glm::vec3 terrainNormal = m_terrain.getNormalAtWorld(x, z);
+            
+            // Only place tree if terrain is above water
+            if (terrainHeight > waterLevel + minHeightAboveWater) {
+                // Calculate tree position
+                glm::vec3 treePos(x, terrainHeight - 0.5f, z);
+                
+                // Create tree
+                Tree tree(treePos);
+                
+                // Calculate rotation to align with terrain normal
+                glm::vec3 upVector(0, 1, 0);
+                
+                // Only rotate if the terrain is significantly different from vertical
+                float dotProduct = glm::dot(upVector, terrainNormal);
+                
+                if (dotProduct < 0.99f) {
+                    glm::quat rotation = glm::rotation(upVector, terrainNormal);
+                    glm::vec3 eulerAngles = glm::eulerAngles(rotation);
+                    
+                    // Limit tilt to max 15 degrees
+                    float maxTilt = glm::radians(15.0f);
+                    eulerAngles.x = glm::clamp(eulerAngles.x, -maxTilt, maxTilt);
+                    eulerAngles.z = glm::clamp(eulerAngles.z, -maxTilt, maxTilt);
+                    
+                    tree.setRotation(eulerAngles);
+                    
+                    std::cout << "Tree " << treesPlaced + 1 << " at (" << x << ", " << terrainHeight
+                             << ", " << z << ") - rotated (max 15°)" << std::endl;
+                }
+                
+                m_trees.push_back(tree);
+                treesPlaced++;
+                
+                if (treesPlaced % 10 == 0) {
+                    std::cout << "Placed " << treesPlaced << " trees..." << std::endl;
+                }
+            }
+        }
+
+        std::cout << "Trees created successfully: " << treesPlaced << " out of " << numTrees << " requested" << std::endl;
 
 	cgra::mesh_builder mb;
 	float size = scene_size / 2;
@@ -373,25 +433,26 @@ void Application::renderGUI() {
     ImGui::Separator();
     ImGui::Text("Tree Settings");
     ImGui::Checkbox("Show Trees", &m_showTrees);
-
+    
     if (m_showTrees && !m_trees.empty()) {
         TreeParameters& params = m_trees[0].getParameters();
         bool changed = false;
-        
+            
         ImGui::Text("Overall Shape");
         if (ImGui::SliderFloat("Scale (Height)", &params.scale, 5.0f, 30.0f)) changed = true;
         if (ImGui::SliderFloat("Base Size", &params.baseSize, 0.1f, 1.0f)) changed = true;
         if (ImGui::SliderFloat("Ratio", &params.ratio, 0.01f, 0.05f)) changed = true;
         if (ImGui::SliderFloat("Flare", &params.flare, 0.0f, 1.5f)) changed = true;
-        
+            
         ImGui::Separator();
         ImGui::Text("Trunk (Level 0)");
+        
         if (ImGui::SliderInt("Segments##0", &params.level[0].nCurveRes, 3, 20)) changed = true;
         if (ImGui::SliderFloat("Curve##0", &params.level[0].nCurve, -50.0f, 50.0f)) changed = true;
         if (ImGui::SliderFloat("Curve Var##0", &params.level[0].nCurveV, 0.0f, 50.0f)) changed = true;
         if (ImGui::SliderInt("Branches##0", &params.level[0].nBranches, 0, 50)) changed = true;
         if (ImGui::SliderFloat("Branch Dist##0", &params.level[0].nBranchDist, -2.0f, 2.0f)) changed = true;
-        
+            
         if (params.levels > 1) {
             ImGui::Separator();
             ImGui::Text("Main Branches (Level 1)");
@@ -405,7 +466,7 @@ void Application::renderGUI() {
             if (ImGui::SliderFloat("Down Var##1", &params.level[1].nDownAngleV, 0.0f, 30.0f)) changed = true;
             if (ImGui::SliderFloat("Rotate##1", &params.level[1].nRotate, 0.0f, 180.0f)) changed = true;
         }
-        
+                
         if (params.levels > 2) {
             ImGui::Separator();
             ImGui::Text("Twigs (Level 2)");
@@ -414,14 +475,14 @@ void Application::renderGUI() {
             if (ImGui::SliderFloat("Curve##2", &params.level[2].nCurve, -100.0f, 100.0f)) changed = true;
             if (ImGui::SliderFloat("Down Angle##2", &params.level[2].nDownAngle, 0.0f, 90.0f)) changed = true;
         }
-        
+                
         ImGui::Separator();
         ImGui::Text("Leaves");
         if (ImGui::Checkbox("Show Leaves", &params.hasLeaves)) changed = true;
         if (params.hasLeaves) {
             if (ImGui::SliderFloat("Leaf Scale", &params.leafScale, 0.05f, 0.5f)) changed = true;
             if (ImGui::SliderInt("Per Branch", &params.leavesPerBranch, 1, 15)) changed = true;
-            
+                
             if (ImGui::TreeNode("Leaf Shape")) {
                 if (ImGui::SliderFloat("Width", &params.leafParams.lobeWidth, 0.1f, 1.0f)) changed = true;
                 if (ImGui::SliderFloat("Height", &params.leafParams.lobeHeight, 0.3f, 2.0f)) changed = true;
@@ -429,16 +490,16 @@ void Application::renderGUI() {
                 if (ImGui::SliderFloat("Top Angle", &params.leafParams.topAngle, 10.0f, 80.0f)) changed = true;
                 if (ImGui::SliderFloat("Bottom Angle", &params.leafParams.bottomAngle, 10.0f, 80.0f)) changed = true;
                 if (ImGui::SliderInt("Lobes", &params.leafParams.lobeCount, 1, 5)) changed = true;
-                
+                        
                 if (params.leafParams.lobeCount > 1) {
                     if (ImGui::SliderFloat("Lobe Separation", &params.leafParams.lobeSeparation, 60.0f, 180.0f)) changed = true;
                     if (ImGui::SliderFloat("Lobe Scale", &params.leafParams.lobeScale, 0.5f, 1.0f)) changed = true;
                 }
-                
+                    
                 ImGui::TreePop();
             }
         }
-        
+            
         if (changed) {
             for (auto& tree : m_trees) {
                 tree.setParameters(params);

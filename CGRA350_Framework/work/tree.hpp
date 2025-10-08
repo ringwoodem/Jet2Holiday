@@ -43,9 +43,9 @@ struct LeafParameters {
 struct TreeParameters {
     // Overall shape
     float shape = 70.0f;            // Overall tree shape (conical=0, spherical=7, etc)
-    float baseSize = 4.4f;         // Radius of trunk base
-    float scale = 130.0f;           // Overall tree height
-    float scaleV = 30.0f;           // Height variance
+    float baseSize = 0.4f;         // Radius of trunk base
+    float scale = 10.0f;           // Overall tree height
+    float scaleV = 10.0f;           // Height variance
     
     // Trunk specific
     int levels = 3;                // Number of branch levels (0=trunk, 1=branches, 2=twigs)
@@ -74,7 +74,7 @@ private:
     cgra::gl_mesh m_branchesMesh;
     cgra::gl_mesh m_leavesMesh;
     bool m_meshGenerated;
-    
+    glm::vec3 m_rotation;
     
     struct StemSegment {
         glm::vec3 position;
@@ -132,5 +132,13 @@ public:
     void regenerate();
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader);
     
+    glm::vec3 getRotation() const { return m_rotation; }
+    
     TreeParameters& getParameters() { return m_params; }
+    
+    void setRotation(const glm::vec3& rotation) {
+        m_rotation = rotation;
+        m_meshGenerated = false;  // Regenerate if needed
+    }
+    
 };

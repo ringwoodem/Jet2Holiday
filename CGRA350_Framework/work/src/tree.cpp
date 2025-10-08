@@ -14,6 +14,7 @@ static std::mt19937 rng(12345); // Fixed seed for consistency
 
 Tree::Tree(const glm::vec3& position)
     : m_position(position)
+    , m_rotation(0.0)
     , m_meshGenerated(false)
 {
     m_params.scale = 10.0f;
@@ -339,6 +340,7 @@ void Tree::createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
                            const glm::vec3& right, const glm::vec3& up,
                            const glm::vec3& normal, float scale,
                            const LeafParameters& lp) {
+   
     size_t baseIdx = mb.vertices.size();
     
     int segments = 10;  // More segments for smoother leaves
@@ -376,13 +378,14 @@ void Tree::createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
     }
     
     for (int i = 0; i < segments; i++) {
-        mb.push_index(baseIdx);
-        mb.push_index(baseIdx + 1 + i);
-        mb.push_index(baseIdx + 1 + ((i + 1) % (segments + 1)));
+        mb.push_index(static_cast<GLuint>(baseIdx));
+        mb.push_index(static_cast<GLuint>(baseIdx + 1 + i));
+        mb.push_index(static_cast<GLuint>(baseIdx + 1 + ((i + 1) % (segments + 1))));
     }
+
     
     // Back face
-    size_t backBaseIdx = mb.vertices.size();
+    GLuint backBaseIdx = static_cast<GLuint>(mb.vertices.size());
     centerVert.norm = -normal;
     mb.push_vertex(centerVert);
     
@@ -498,7 +501,16 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, con
         std::cout << "Branch mesh VBO: " << m_branchesMesh.vbo << ", indices: " << m_branchesMesh.index_count << std::endl;
     }
     
+    // Create model matrix with position and rotation
     glm::mat4 model = glm::translate(glm::mat4(1.0f), m_position);
+    
+    // Apply rotation to align with terrain
+    if (glm::length(m_rotation) > 0.001f) {
+        model = glm::rotate(model, m_rotation.x, glm::vec3(1, 0, 0)); // Pitch
+        model = glm::rotate(model, m_rotation.y, glm::vec3(0, 1, 0)); // Yaw
+        model = glm::rotate(model, m_rotation.z, glm::vec3(0, 0, 1)); // Roll
+    }
+    
     glm::mat4 modelview = view * model;
     
     glUseProgram(shader);
