@@ -10,6 +10,7 @@
 
 #include "terrain.hpp"
 #include "water.hpp"
+#include "tree.hpp"
 
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
@@ -42,6 +43,11 @@ private:
 
 	Terrain m_terrain;
 	Water m_water;
+    
+    // Tree things
+    std::vector<Tree> m_trees;
+    TreeParameters m_treeParams;
+    bool m_showTrees = true;
 
 	GLuint m_sandTexture;
 

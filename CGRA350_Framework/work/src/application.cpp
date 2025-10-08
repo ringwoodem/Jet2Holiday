@@ -82,6 +82,17 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_terrain = Terrain(512, 512, scene_size);
 	m_water = Water(2048, scene_size);
 
+    std::cout << "Creating trees..." << std::endl;
+    for (int i = 0; i < 5; i++) {
+        glm::vec3 pos(
+            (i - 2) * 15.0f,
+            0.0f,
+            -20.0f
+        );
+        Tree tree(pos);
+        m_trees.push_back(tree);
+    }
+
 	cgra::mesh_builder mb;
 	float size = scene_size / 2;
 
@@ -153,12 +164,17 @@ void Application::render() {
 		sunOrbitRadius * sin(angle)    // Z: circle
 	);
 
-	float t = clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
+	float t = glm::clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
 	vec3 sunColour = mix(
 		vec3(1.0f, 0.5f, 0.2f),
 		vec3(1.0f, 1.0f, 1.0f),
 		t
 	);
+    
+    // Draw trees
+    for (auto& tree : m_trees) {
+        tree.draw(view, proj, m_shader);
+    }
 
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
@@ -307,6 +323,83 @@ void Application::renderGUI() {
 		m_terrain.setMinHeight(minHeight);
 		terrainChanged = true;
 	}
+    
+    // tree stuff
+    ImGui::Separator();
+    ImGui::Text("Tree Settings");
+    ImGui::Checkbox("Show Trees", &m_showTrees);
+
+    if (m_showTrees && !m_trees.empty()) {
+        TreeParameters& params = m_trees[0].getParameters();
+        bool changed = false;
+        
+        ImGui::Text("Overall Shape");
+        if (ImGui::SliderFloat("Scale (Height)", &params.scale, 5.0f, 30.0f)) changed = true;
+        if (ImGui::SliderFloat("Base Size", &params.baseSize, 0.1f, 1.0f)) changed = true;
+        if (ImGui::SliderFloat("Ratio", &params.ratio, 0.01f, 0.05f)) changed = true;
+        if (ImGui::SliderFloat("Flare", &params.flare, 0.0f, 1.5f)) changed = true;
+        
+        ImGui::Separator();
+        ImGui::Text("Trunk (Level 0)");
+        if (ImGui::SliderInt("Segments##0", &params.level[0].nCurveRes, 3, 20)) changed = true;
+        if (ImGui::SliderFloat("Curve##0", &params.level[0].nCurve, -50.0f, 50.0f)) changed = true;
+        if (ImGui::SliderFloat("Curve Var##0", &params.level[0].nCurveV, 0.0f, 50.0f)) changed = true;
+        if (ImGui::SliderInt("Branches##0", &params.level[0].nBranches, 0, 50)) changed = true;
+        if (ImGui::SliderFloat("Branch Dist##0", &params.level[0].nBranchDist, -2.0f, 2.0f)) changed = true;
+        
+        if (params.levels > 1) {
+            ImGui::Separator();
+            ImGui::Text("Main Branches (Level 1)");
+            if (ImGui::SliderFloat("Length##1", &params.level[1].nLength, 0.1f, 1.0f)) changed = true;
+            if (ImGui::SliderFloat("Length Var##1", &params.level[1].nLengthV, 0.0f, 0.2f)) changed = true;
+            if (ImGui::SliderInt("Segments##1", &params.level[1].nCurveRes, 3, 15)) changed = true;
+            if (ImGui::SliderFloat("Curve##1", &params.level[1].nCurve, -100.0f, 100.0f)) changed = true;
+            if (ImGui::SliderFloat("Curve Var##1", &params.level[1].nCurveV, 0.0f, 100.0f)) changed = true;
+            if (ImGui::SliderInt("Child Branches##1", &params.level[1].nBranches, 0, 30)) changed = true;
+            if (ImGui::SliderFloat("Down Angle##1", &params.level[1].nDownAngle, 0.0f, 90.0f)) changed = true;
+            if (ImGui::SliderFloat("Down Var##1", &params.level[1].nDownAngleV, 0.0f, 30.0f)) changed = true;
+            if (ImGui::SliderFloat("Rotate##1", &params.level[1].nRotate, 0.0f, 180.0f)) changed = true;
+        }
+        
+        if (params.levels > 2) {
+            ImGui::Separator();
+            ImGui::Text("Twigs (Level 2)");
+            if (ImGui::SliderFloat("Length##2", &params.level[2].nLength, 0.1f, 1.0f)) changed = true;
+            if (ImGui::SliderInt("Segments##2", &params.level[2].nCurveRes, 3, 10)) changed = true;
+            if (ImGui::SliderFloat("Curve##2", &params.level[2].nCurve, -100.0f, 100.0f)) changed = true;
+            if (ImGui::SliderFloat("Down Angle##2", &params.level[2].nDownAngle, 0.0f, 90.0f)) changed = true;
+        }
+        
+        ImGui::Separator();
+        ImGui::Text("Leaves");
+        if (ImGui::Checkbox("Show Leaves", &params.hasLeaves)) changed = true;
+        if (params.hasLeaves) {
+            if (ImGui::SliderFloat("Leaf Scale", &params.leafScale, 0.05f, 0.5f)) changed = true;
+            if (ImGui::SliderInt("Per Branch", &params.leavesPerBranch, 1, 15)) changed = true;
+            
+            if (ImGui::TreeNode("Leaf Shape")) {
+                if (ImGui::SliderFloat("Width", &params.leafParams.lobeWidth, 0.1f, 1.0f)) changed = true;
+                if (ImGui::SliderFloat("Height", &params.leafParams.lobeHeight, 0.3f, 2.0f)) changed = true;
+                if (ImGui::SliderFloat("Offset", &params.leafParams.lobeOffset, 0.0f, 0.5f)) changed = true;
+                if (ImGui::SliderFloat("Top Angle", &params.leafParams.topAngle, 10.0f, 80.0f)) changed = true;
+                if (ImGui::SliderFloat("Bottom Angle", &params.leafParams.bottomAngle, 10.0f, 80.0f)) changed = true;
+                if (ImGui::SliderInt("Lobes", &params.leafParams.lobeCount, 1, 5)) changed = true;
+                
+                if (params.leafParams.lobeCount > 1) {
+                    if (ImGui::SliderFloat("Lobe Separation", &params.leafParams.lobeSeparation, 60.0f, 180.0f)) changed = true;
+                    if (ImGui::SliderFloat("Lobe Scale", &params.leafParams.lobeScale, 0.5f, 1.0f)) changed = true;
+                }
+                
+                ImGui::TreePop();
+            }
+        }
+        
+        if (changed) {
+            for (auto& tree : m_trees) {
+                tree.setParameters(params);
+            }
+        }
+    }
 
 	// finish creating window
 	ImGui::End();
