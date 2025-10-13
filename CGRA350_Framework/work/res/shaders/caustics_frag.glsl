@@ -87,18 +87,29 @@ float snoise(vec3 v) {
 void main() {
   vec4 texColor = texture(uTexture, vUv);
   vec3 normal = vec3(0, 1, 0); 
-
   vec3 sunDir = normalize(vSunPos - vWorldPos);
   float sunIntensity = max(dot(normal, sunDir), 0.0);
 
+  float sunHeight = vSunPos.y;
+  float dayFactor = smoothstep(-50.0, 50.0, sunHeight);
+
+  vec3 ambient = mix(
+    vec3(0.01) * texColor.rgb,  // Very dark at night
+    vec3(0.3) * texColor.rgb,   // Ambient light during day
+    dayFactor
+  );
+
+  vec3 diffuse = dayFactor * sunIntensity * texColor.rgb * vSunColor;
+
+  // Only calculate caustics when sun is above horizon
   float caustics = 0.0;
-  caustics += uCausticsIntensity * (uCausticsOffset - abs(snoise(vec3(vUv.xy * uCausticsScale, uTime * uCausticsSpeed))));
-  caustics += uCausticsIntensity * (uCausticsOffset - abs(snoise(vec3(vUv.yx * uCausticsScale, -uTime * uCausticsSpeed))));
-
-  caustics = smoothstep(0.5 - uCausticsThickness, 0.5 + uCausticsThickness, caustics);
-  caustics *= sunIntensity;
-
-  vec3 finalColor = texColor.rgb + caustics * uCausticsColor * vSunColor;
-
+  if (dayFactor > 0.01) {  // Skip expensive noise calculations at night
+    caustics += uCausticsIntensity * (uCausticsOffset - abs(snoise(vec3(vUv.xy * uCausticsScale, uTime * uCausticsSpeed))));
+    caustics += uCausticsIntensity * (uCausticsOffset - abs(snoise(vec3(vUv.yx * uCausticsScale, -uTime * uCausticsSpeed))));
+    caustics = smoothstep(0.5 - uCausticsThickness, 0.5 + uCausticsThickness, caustics);
+    caustics *= sunIntensity * dayFactor;  // Fade caustics with sun position
+  }
+  
+  vec3 finalColor = ambient + diffuse + caustics * uCausticsColor * vSunColor;
   fragColor = vec4(finalColor, 1.0);
 }

@@ -22,11 +22,19 @@ void main() {
     vec3 N = normalize(trunkNormal);
     vec3 L = normalize(uSunPos - vWorldPos);
 
+    float sunHeight = uSunPos.y;
+    float dayFactor = smoothstep(-50.0, 50.0, sunHeight); // 0 at night, 1 at day
+
     float NdotL = max(dot(N, L), 0.0);
     vec3 albedo = trunkColor * vColor; // Tint texture by vertex color if desired
 
-    vec3 ambient = 0.5 * albedo;
-    vec3 diffuse = NdotL * albedo * uSunColor;
+    vec3 ambient = mix(
+        vec3(0.01) * albedo, 
+        vec3(0.3) * albedo, 
+        dayFactor
+    ); // Ambient term
+
+    vec3 diffuse = dayFactor * NdotL * albedo * uSunColor;
 
     vec3 finalColor = ambient + diffuse;
 

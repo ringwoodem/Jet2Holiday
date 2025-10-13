@@ -83,9 +83,11 @@ void main() {
     float grassRoughness = texture(uGrassRoughness, tiledUV).r;
     float roughness = grassRoughness; // Use roughness map
 
+    float sunHeight = uSunPos.y;
+    float dayFactor = smoothstep(-50.0, 50.0, sunHeight); // 0 at night, 1 at day
+
     // Shadow (placeholder, not true PCSS)
     float shadow = 1.0; // No shadow map
-
     float NdotL = max(dot(N, L), 0.0);
 
     // BRDF
@@ -93,9 +95,14 @@ void main() {
     vec3 brdf = cookTorranceBRDF(N, V, L, F0, roughness);
 
     // Final color composition
-    vec3 ambient = 0.5 * albedo;  // Ambient term
-    vec3 diffuse = NdotL * albedo * uSunColor;  // Diffuse term
-    vec3 specular = brdf * uSunColor;  // Specular term
+    vec3 ambient = mix(
+        vec3(0.01) * albedo, 
+        vec3(0.3) * albedo, 
+        dayFactor
+    ); // Ambient term
+
+    vec3 diffuse = dayFactor * NdotL * albedo * uSunColor;  // Diffuse term
+    vec3 specular = dayFactor * brdf * uSunColor;  // Specular term
     
     vec3 finalColor = ambient + shadow * (diffuse + specular);
     

@@ -95,7 +95,7 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_model.color = vec3(1, 0, 0);
 
 	m_terrain = Terrain(512, 512, scene_size);
-	m_water = Water(2048, scene_size);
+	m_water = Water(3000, scene_size);
     
     
    m_showTrees = true;
@@ -249,7 +249,7 @@ void Application::render() {
     //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
     //m_panel.frame(width, height, m_mousePosition, leftDownScene, view, proj, m_cam);
     
-	m_time += 0.016f;
+	m_time += 0.010f;
     
 
 
@@ -264,17 +264,23 @@ void Application::render() {
 
 	float angle = m_time * sunSpeed;
 	vec3 sunPos = vec3(
-		sunOrbitRadius * cos(angle),   // X: circle
-		100.0f * sin(angle),           // Y: oscillates from -100 to 100
-		sunOrbitRadius * sin(angle)    // Z: circle
+		sunOrbitRadius * cos(angle),    // X: horizontal position
+		sunOrbitRadius * sin(angle),    // Y: vertical position (creates full circle)
+		0.0								// Z: keep at 0 for orbit in XY plane
 	);
 
-	float t = glm::clamp(sin(angle) * 0.5f + 0.5f, 0.0f, 1.0f);
-	vec3 sunColour = mix(
-		vec3(1.0f, 0.5f, 0.2f),
-		vec3(1.0f, 1.0f, 1.0f),
-		t
-	);
+	float heightFactor = sin(angle);
+	vec3 sunColour;
+
+	if (heightFactor < 0.0f) {
+		sunColour = vec3(0.0f, 0.0f, 0.0f); // below horizon, no sun
+	}
+	else {
+		sunColour = mix(
+			vec3(1.0f, 0.5f, 0.2f), // Warm orange/red at horizon
+			vec3(1.0f, 1.0f, 1.0f), // Bright white at zenith
+			heightFactor);			// 0 at horizon, 1 at top
+	}
 
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
