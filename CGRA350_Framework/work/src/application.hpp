@@ -56,7 +56,8 @@ private:
 
 	GLuint m_sandTexture;
 
-	GLuint cubemap;
+	GLuint dayCubemap;
+	GLuint nightCubemap;
 	GLuint skyboxVAO = 0, skyboxVBO = 0;
 
 	float skyboxVertices[108] = {

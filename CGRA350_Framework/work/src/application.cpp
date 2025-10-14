@@ -80,15 +80,26 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_treeShader = tree_sb.build();
 
 	stbi_set_flip_vertically_on_load(false);
-	std::vector<std::string> faces = {
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//px.png"),
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//nx.png"),
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//py.png"),
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//ny.png"),
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//pz.png"),
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//nz.png")
+	std::vector<std::string> dayFaces = {
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//px.bmp"), // right
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//nx.bmp"), // left
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//py.bmp"), // top
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//ny.bmp"), // bottom
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//pz.bmp"), // front
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//nz.bmp")  // back
 	};
-	cubemap = loadCubemap(faces);
+
+	std::vector<std::string> nightFaces = {
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//px.png"), // right
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//nx.png"), // left
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//py.png"), // top
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//ny.png"), // bottom
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//pz.png"), // front
+		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//nz.png")  // back
+	};
+
+	dayCubemap = loadCubemap(dayFaces);
+	nightCubemap = loadCubemap(nightFaces);
 
 	m_model.shader = m_shader;
 	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
@@ -97,8 +108,7 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	m_terrain = Terrain(512, 512, scene_size);
 	m_water = Water(3000, scene_size);
     
-    
-   m_showTrees = true;
+    m_showTrees = true;
 //    int numTrees = 50;
 //
     std::cout << "Creating trees..." << std::endl;
@@ -249,9 +259,7 @@ void Application::render() {
     //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
     //m_panel.frame(width, height, m_mousePosition, leftDownScene, view, proj, m_cam);
     
-	m_time += 0.010f;
-    
-
+	m_time += 0.005f;
 
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
@@ -288,7 +296,7 @@ void Application::render() {
 	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
 
 	glDepthFunc(GL_LEQUAL);
-	renderSkybox(m_skyboxShader, skyboxVAO, cubemap, view, proj, sunPos, sunColour);
+	renderSkybox(m_skyboxShader, skyboxVAO, dayCubemap, view, proj, sunPos, sunColour);
 	glDepthFunc(GL_LESS);
 
 	renderSandPlane(view, proj, m_time, sunPos, sunColour);
@@ -306,8 +314,11 @@ void Application::render() {
 	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 	lastTime = currentTime;
 
+	float sunHeight = sunPos.y;
+	float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
+
 	m_water.update(deltaTime);
-	m_water.draw(view, proj, m_waterShader, cubemap, vec3(0.1f, 0.3f, 0.7f));
+	m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour);
 
 }
 
@@ -347,6 +358,9 @@ void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cub
 
 	glUseProgram(skyboxShader);
 
+	float sunHeight = sunPos.y;
+	float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
+
 	glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(view));
 	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "view"), 1, GL_FALSE, glm::value_ptr(viewNoTranslation));
 	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -354,9 +368,16 @@ void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cub
 	glUniform3fv(glGetUniformLocation(skyboxShader, "uSunPos"), 1, glm::value_ptr(sunPos));
 	glUniform3fv(glGetUniformLocation(skyboxShader, "uSunColor"), 1, glm::value_ptr(sunColour));
 
+	// Pass blend factor
+	glUniform1f(glGetUniformLocation(m_skyboxShader, "uDayFactor"), dayFactor);
+
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
-	glUniform1i(glGetUniformLocation(skyboxShader, "skybox"), 0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, dayCubemap);
+	glUniform1i(glGetUniformLocation(m_skyboxShader, "uDayCubemap"), 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, nightCubemap);
+	glUniform1i(glGetUniformLocation(m_skyboxShader, "uNightCubemap"), 1);
 
 	glBindVertexArray(skyboxVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -523,25 +544,47 @@ GLuint Application::loadCubemap(const std::vector<std::string>& faces) {
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
 	int width, height, nrChannels;
+
+	std::cout << "Loading cubemap..." << std::endl;
+
 	for (GLuint i = 0; i < faces.size(); i++) {
-		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		std::cout << "Loading face " << i << ": " << faces[i] << std::endl;
+
+		// Force loading as RGB (3 channels) - the '3' parameter tells stbi to convert
+		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 3);
+
 		if (data) {
+			std::cout << "  ✓ Loaded successfully: " << width << "x" << height
+				<< " (original had " << nrChannels << " channels, converted to RGB)" << std::endl;
+
+			// Now we know it's always RGB since we forced it in stbi_load
 			glTexImage2D(
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
-				GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0,
+				GL_RGB,  // Internal format
+				width, height, 0,
+				GL_RGB,  // Data format - always RGB now
+				GL_UNSIGNED_BYTE,
+				data
 			);
 			stbi_image_free(data);
 		}
 		else {
-			std::cerr << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			std::cerr << "  ✗ FAILED to load cubemap texture at path: " << faces[i] << std::endl;
+			std::cerr << "  STB Error: " << stbi_failure_reason() << std::endl;
 			stbi_image_free(data);
+			return 0; // Return 0 to indicate failure
 		}
 	}
+
+	// Set texture parameters
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	std::cout << "Cubemap created with ID: " << textureID << std::endl;
 
 	return textureID;
 }
