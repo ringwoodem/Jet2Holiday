@@ -207,98 +207,87 @@ void Tree::generateStem(int level, const glm::vec3& startPos, const glm::vec3& s
 void Tree::generateMeshFromSegments() {
     cgra::mesh_builder trunkBuilder;
     cgra::mesh_builder branchBuilder;
-    
+
     const int radSegs = m_params.radialSegments;
-    
+
     for (const Stem& stem : m_stems) {
         cgra::mesh_builder& mb = (stem.level == 0) ? trunkBuilder : branchBuilder;
         size_t vertexStart = mb.vertices.size();
-        
+
         for (const StemSegment& seg : stem.segments) {
             for (int j = 0; j < radSegs; j++) {
                 float angle = (float)j / radSegs * glm::two_pi<float>();
                 glm::vec3 offset(cos(angle) * seg.radius, 0, sin(angle) * seg.radius);
                 glm::vec3 worldOffset = seg.rotation * offset;
                 glm::vec3 normal = glm::normalize(worldOffset);
-                
+
                 cgra::mesh_vertex vertex;
                 vertex.pos = seg.position + worldOffset;
                 vertex.norm = normal;
                 vertex.uv = glm::vec2((float)j / radSegs, (float)seg.segmentIndex / seg.totalSegments);
-                
+
                 mb.push_vertex(vertex);
             }
         }
-        
+
         size_t ringCount = stem.segments.size();
         for (size_t r = 0; r < ringCount - 1; r++) {
             size_t baseIdx = vertexStart + r * radSegs;
             for (int j = 0; j < radSegs; j++) {
                 int j_next = (j + 1) % radSegs;
-                
+
                 mb.push_index(static_cast<GLuint>(baseIdx + j));
                 mb.push_index(static_cast<GLuint>(baseIdx + j_next));
                 mb.push_index(static_cast<GLuint>(baseIdx + radSegs + j));
-                
+
                 mb.push_index(static_cast<GLuint>(baseIdx + j_next));
                 mb.push_index(static_cast<GLuint>(baseIdx + radSegs + j_next));
                 mb.push_index(static_cast<GLuint>(baseIdx + radSegs + j));
             }
         }
     }
-    
-    std::cout << "Trunk - vertices: " << trunkBuilder.vertices.size()
-              << ", indices: " << trunkBuilder.indices.size() << std::endl;
-    std::cout << "Branches - vertices: " << branchBuilder.vertices.size()
-              << ", indices: " << branchBuilder.indices.size() << std::endl;
-    
+
     m_trunkMesh = trunkBuilder.build();
     m_branchesMesh = branchBuilder.build();
 }
 
 void Tree::generateLeavesMesh() {
     if (!m_params.hasLeaves) return;
-    
+
     cgra::mesh_builder leafBuilder;
     std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-    
+
     for (const Stem& stem : m_stems) {
         if (stem.level != m_params.levels - 1) continue;
-        
+
         int numLeaves = m_params.leavesPerBranch;
-        
-        // Place leaves more densely along the branch
+
         for (int i = 0; i < numLeaves; i++) {
-            // Start from 20% along the branch to 100%
             float baseT = 0.2f + (float)i / (numLeaves - 1) * 0.8f;
-            
-            // Add some randomness to position
             float t = baseT + randomVariance(0.05f);
             t = glm::clamp(t, 0.0f, 1.0f);
-            
+
             int segmentIdx = (int)(t * (stem.segments.size() - 1));
             segmentIdx = glm::clamp(segmentIdx, 0, (int)stem.segments.size() - 1);
-            
+
             const StemSegment& seg = stem.segments[segmentIdx];
-            
-            // Multiple leaves around each point
-            int leavesAround = 2;  // 2 leaves at each position
+
+            int leavesAround = 2;
             for (int j = 0; j < leavesAround; j++) {
                 float rotAngle = (float)i / numLeaves * glm::two_pi<float>() * 3.0f +
-                                (float)j / leavesAround * glm::two_pi<float>();
+                    (float)j / leavesAround * glm::two_pi<float>();
                 rotAngle += randomVariance(0.3f);
-                
-                // Slightly offset position for variety
+
                 glm::vec3 leafPos = seg.position + seg.direction * randomVariance(0.02f);
-                
+
                 createLeaf(leafBuilder, leafPos, seg.direction, seg.rotation, rotAngle);
             }
         }
     }
-    
+
     std::cout << "Leaves - vertices: " << leafBuilder.vertices.size()
-              << ", indices: " << leafBuilder.indices.size() << std::endl;
-    
+        << ", indices: " << leafBuilder.indices.size() << std::endl;
+
     m_leavesMesh = leafBuilder.build();
 }
 
@@ -481,74 +470,69 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
     }
 }
 
-void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& sunPos, const glm::vec3& sunColour,
-    GLuint trunkDiffuse, GLuint trunkNormal, GLuint trunkRoughness) {
+void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
+    const glm::vec3& sunPos, const glm::vec3& sunColour,
+    GLuint trunkDiffuse, GLuint trunkNormal, GLuint trunkRoughness, const glm::vec3& cameraPos) {
     if (!m_meshGenerated) {
-        std::cout << "=== GENERATING TREE WITH BRANCHES ===" << std::endl;
-        std::cout << "Position: (" << m_position.x << ", " << m_position.y << ", " << m_position.z << ")" << std::endl;
-        
+        std::cout << "=== GENERATING TREE ===" << std::endl;
         m_stems.clear();
         float trunkLength = m_params.scale * m_params.level[0].nLength;
-        
         generateStem(0, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), trunkLength, m_params.baseSize);
-        std::cout << "Total stems: " << m_stems.size() << std::endl;
-        
         generateMeshFromSegments();
         generateLeavesMesh();
         m_meshGenerated = true;
-        
-        std::cout << "Trunk mesh VBO: " << m_trunkMesh.vbo << ", indices: " << m_trunkMesh.index_count << std::endl;
-        std::cout << "Branch mesh VBO: " << m_branchesMesh.vbo << ", indices: " << m_branchesMesh.index_count << std::endl;
     }
-    
-    // Create model matrix with position and rotation
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), m_position);
-    
-    // Apply rotation to align with terrain
-    if (glm::length(m_rotation) > 0.001f) {
-        model = glm::rotate(model, m_rotation.x, glm::vec3(1, 0, 0)); // Pitch
-        model = glm::rotate(model, m_rotation.y, glm::vec3(0, 1, 0)); // Yaw
-        model = glm::rotate(model, m_rotation.z, glm::vec3(0, 0, 1)); // Roll
-    }
-    
-    glm::mat4 modelview = view * model;
-    
-    glUseProgram(shader);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, glm::value_ptr(proj));
-    glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, glm::value_ptr(modelview));
 
+    // Create model matrix
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), m_position);
+    if (glm::length(m_rotation) > 0.001f) {
+        model = glm::rotate(model, m_rotation.x, glm::vec3(1, 0, 0));
+        model = glm::rotate(model, m_rotation.y, glm::vec3(0, 1, 0));
+        model = glm::rotate(model, m_rotation.z, glm::vec3(0, 0, 1));
+    }
+
+    glm::mat4 modelview = view * model;
+
+    glUseProgram(shader);
+
+    // Set matrices
+    glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, GL_FALSE, glm::value_ptr(modelview));
+    glUniformMatrix4fv(glGetUniformLocation(shader, "uModelMatrix"), 1, GL_FALSE, glm::value_ptr(model));
+
+    // Set lighting uniforms
     glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColour));
-    
-    // Draw trunk
-    glm::vec3 trunkColor(0.4f, 0.25f, 0.15f);
-    glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, glm::value_ptr(trunkColor));
+    glUniform3fv(glGetUniformLocation(shader, "uCameraPos"), 1, glm::value_ptr(cameraPos));
+
+    // Bind textures
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, trunkDiffuse);
+    glUniform1i(glGetUniformLocation(shader, "uTrunkDiffuse"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, trunkNormal);
+    glUniform1i(glGetUniformLocation(shader, "uTrunkNormal"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, trunkRoughness);
+    glUniform1i(glGetUniformLocation(shader, "uTrunkRoughness"), 2);
+
+    // Draw trunk (not leaves)
+    glUniform1i(glGetUniformLocation(shader, "uIsLeaf"), 0);
     if (m_trunkMesh.vbo != 0 && m_trunkMesh.index_count > 0) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, trunkDiffuse);
-        glUniform1i(glGetUniformLocation(shader, "uTrunkDiffuse"), 0);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, trunkNormal);
-        glUniform1i(glGetUniformLocation(shader, "uTrunkNormal"), 1);
-
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, trunkRoughness);
-        glUniform1i(glGetUniformLocation(shader, "uTrunkRoughness"), 2);
-
         m_trunkMesh.draw();
     }
-    
-    // Draw branches
-    glm::vec3 branchColor(0.35f, 0.22f, 0.12f);
-    glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, glm::value_ptr(branchColor));
+
+    // Draw branches (not leaves)
+    glUniform1i(glGetUniformLocation(shader, "uIsLeaf"), 0);
     if (m_branchesMesh.vbo != 0 && m_branchesMesh.index_count > 0) {
         m_branchesMesh.draw();
     }
-    
-    // Draw leaves
+
+    // Draw leaves (IS leaves)
+    glUniform1i(glGetUniformLocation(shader, "uIsLeaf"), 1);
     if (m_params.hasLeaves && m_leavesMesh.vbo != 0 && m_leavesMesh.index_count > 0) {
-        glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, glm::value_ptr(m_params.leafParams.color));
         m_leavesMesh.draw();
     }
 }

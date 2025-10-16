@@ -306,7 +306,9 @@ void Application::render() {
   
 	// Draw trees
 	for (auto& tree : m_trees) {
-		tree.draw(view, proj, m_treeShader, sunPos, sunColour, m_trunkTexture, m_trunkNormal, m_trunkRoughness);
+		glm::vec3 cameraPos = glm::vec3(glm::inverse(view)[3]);
+		tree.draw(view, proj, m_treeShader, sunPos, sunColour,
+			m_trunkTexture, m_trunkNormal, m_trunkRoughness, cameraPos);
 	}
 
 	static auto lastTime = std::chrono::high_resolution_clock::now();
