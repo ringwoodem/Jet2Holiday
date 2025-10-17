@@ -2,4 +2,4 @@
 .vs/
 *.VC.db
 *.ipch
-*.vsidx
+*.vsidx.DS_Store
