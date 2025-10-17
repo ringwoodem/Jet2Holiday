@@ -1,4 +1,3 @@
-
 // std
 #include <iostream>
 #include <string>
@@ -28,85 +27,93 @@ using namespace cgra;
 using namespace glm;
 
 void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
-	mat4 modelview = view * modelTransform;
-	
-	glUseProgram(shader); // load shader and variables
-	glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, value_ptr(proj));
-	glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, value_ptr(modelview));
-	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
+    mat4 modelview = view * modelTransform;
+    
+    glUseProgram(shader); // load shader and variables
+    glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, value_ptr(modelview));
+    glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
 
-	mesh.draw(); // draw
+    mesh.draw(); // draw
 }
 
 
 Application::Application(GLFWwindow *window) : m_window(window) {
-	float scene_size = 200.0f;
+    float scene_size = 200.0f;
 
-	shader_builder sb;
+    shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
-	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
-	m_shader = sb.build();
+    sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
+    m_shader = sb.build();
     m_panel.init(m_shader);
     m_cam.yawDeg = 90.0f;
     //m_panel.setPanelZ(5.0f);
     m_panel.setPanelZ(0.2f);
 
-	// terrain shader
-	shader_builder terrain_sb;
-	terrain_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
-	terrain_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//terrain_frag.glsl"));
-	m_terrainShader = terrain_sb.build();
+    // terrain shader
+    shader_builder terrain_sb;
+    terrain_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
+    terrain_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//terrain_frag.glsl"));
+    m_terrainShader = terrain_sb.build();
 
-	// water shader
-	shader_builder water_sb;
-	water_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//water_vert.glsl"));
-	water_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//water_frag.glsl"));
-	m_waterShader = water_sb.build();
+    // water shader
+    shader_builder water_sb;
+    water_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//water_vert.glsl"));
+    water_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//water_frag.glsl"));
+    m_waterShader = water_sb.build();
 
-	// skybox shader
-	shader_builder skybox_sb;
-	skybox_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//skybox_vert.glsl"));
-	skybox_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//skybox_frag.glsl"));
-	m_skyboxShader = skybox_sb.build();
+    // skybox shader
+    shader_builder skybox_sb;
+    skybox_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//skybox_vert.glsl"));
+    skybox_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//skybox_frag.glsl"));
+    m_skyboxShader = skybox_sb.build();
 
-	shader_builder caustics_sb;
-	caustics_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_vert.glsl"));
-	caustics_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_frag.glsl"));
-	m_causticsShader = caustics_sb.build();
+    shader_builder caustics_sb;
+    caustics_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_vert.glsl"));
+    caustics_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//caustics_frag.glsl"));
+    m_causticsShader = caustics_sb.build();
 
-	shader_builder tree_sb;
-	tree_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_vert.glsl"));
-	tree_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_frag.glsl"));
-	m_treeShader = tree_sb.build();
+    shader_builder tree_sb;
+    tree_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_vert.glsl"));
+    tree_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_frag.glsl"));
+    m_treeShader = tree_sb.build();
 
-	stbi_set_flip_vertically_on_load(false);
-	std::vector<std::string> dayFaces = {
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//px.bmp"), // right
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//nx.bmp"), // left
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//py.bmp"), // top
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//ny.bmp"), // bottom
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//pz.bmp"), // front
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//day//nz.bmp")  // back
-	};
+    stbi_set_flip_vertically_on_load(false);
+    std::vector<std::string> dayFaces = {
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//day//px.bmp"), // right
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//day//nx.bmp"), // left
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//day//py.bmp"), // top
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//day//ny.bmp"), // bottom
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//day//pz.bmp"), // front
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//day//nz.bmp")  // back
+    };
 
-	std::vector<std::string> nightFaces = {
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//px.png"), // right
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//nx.png"), // left
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//py.png"), // top
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//ny.png"), // bottom
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//pz.png"), // front
-		CGRA_SRCDIR + std::string("//res//textures//cubemap//night//nz.png")  // back
-	};
+    std::vector<std::string> nightFaces = {
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//night//px.png"), // right
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//night//nx.png"), // left
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//night//py.png"), // top
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//night//ny.png"), // bottom
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//night//pz.png"), // front
+        CGRA_SRCDIR + std::string("//res//textures//cubemap//night//nz.png")  // back
+    };
 
-	dayCubemap = loadCubemap(dayFaces);
-	nightCubemap = loadCubemap(nightFaces);
+    dayCubemap = loadCubemap(dayFaces);
+    nightCubemap = loadCubemap(nightFaces);
+    
+    m_model.shader = m_shader;
+    m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
+    m_model.color = vec3(1, 0, 0);
 
-	m_model.shader = m_shader;
-	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
-	m_model.color = vec3(1, 0, 0);
-
-	m_terrain = Terrain(512, 512, scene_size);
-	m_water = Water(3000, scene_size);
+    m_terrain = Terrain(512, 512, scene_size);
+    m_water = Water(3000, scene_size);
+    
+    // cloud stuff
+    shader_builder cloud_sb;
+    cloud_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("/res/shaders/cloud_vert.glsl"));
+    cloud_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("/res/shaders/cloud_frag.glsl"));
+    m_cloudShader = cloud_sb.build();
+    // Initialize cloud renderer
+    m_cloudRenderer.init(m_cloudShader);
     
     m_showTrees = true;
 //    int numTrees = 50;
@@ -117,7 +124,7 @@ Application::Application(GLFWwindow *window) : m_window(window) {
         std::uniform_real_distribution<float> distX(-scene_size / 2.0f, scene_size / 2.0f);
         std::uniform_real_distribution<float> distZ(-scene_size / 2.0f, scene_size / 2.0f);
 
-        int numTrees = 100;
+        int numTrees = 1;
         float waterLevel = 0.0f;
         float minHeightAboveWater = 0.5f;
 
@@ -157,65 +164,65 @@ Application::Application(GLFWwindow *window) : m_window(window) {
                     
                     tree.setRotation(eulerAngles);
                     
-                    std::cout << "Tree " << treesPlaced + 1 << " at (" << x << ", " << terrainHeight
-                             << ", " << z << ") - rotated (max 15°)" << std::endl;
+                    //std::cout << "Tree " << treesPlaced + 1 << " at (" << x << ", " << terrainHeight
+                           //  << ", " << z << ") - rotated (max 15°)" << std::endl;
                 }
                 
                 m_trees.push_back(tree);
                 treesPlaced++;
                 
                 if (treesPlaced % 10 == 0) {
-                    std::cout << "Placed " << treesPlaced << " trees..." << std::endl;
+                   // std::cout << "Placed " << treesPlaced << " trees..." << std::endl;
                 }
             }
         }
 
-        std::cout << "Trees created successfully: " << treesPlaced << " out of " << numTrees << " requested" << std::endl;
+        //std::cout << "Trees created successfully: " << treesPlaced << " out of " << numTrees << " requested" << std::endl;
 
-	cgra::mesh_builder mb;
-	float size = scene_size / 2;
+    cgra::mesh_builder mb;
+    float size = scene_size / 2;
 
-	// Vertices (XZ plane at y = -1.0f)
-	mb.push_vertex({ glm::vec3(-size, -1.0f, -size), glm::vec3(0,1,0), glm::vec2(0,0) });
-	mb.push_vertex({ glm::vec3(size, -1.0f, -size), glm::vec3(0,1,0), glm::vec2(1,0) });
-	mb.push_vertex({ glm::vec3(size, -1.0f,  size), glm::vec3(0,1,0), glm::vec2(1,1) });
-	mb.push_vertex({ glm::vec3(-size, -1.0f,  size), glm::vec3(0,1,0), glm::vec2(0,1) });
+    // Vertices (XZ plane at y = -1.0f)
+    mb.push_vertex({ glm::vec3(-size, -1.0f, -size), glm::vec3(0,1,0), glm::vec2(0,0) });
+    mb.push_vertex({ glm::vec3(size, -1.0f, -size), glm::vec3(0,1,0), glm::vec2(1,0) });
+    mb.push_vertex({ glm::vec3(size, -1.0f,  size), glm::vec3(0,1,0), glm::vec2(1,1) });
+    mb.push_vertex({ glm::vec3(-size, -1.0f,  size), glm::vec3(0,1,0), glm::vec2(0,1) });
 
-	// Indices
-	mb.push_index(0); mb.push_index(1); mb.push_index(2);
-	mb.push_index(2); mb.push_index(3); mb.push_index(0);
+    // Indices
+    mb.push_index(0); mb.push_index(1); mb.push_index(2);
+    mb.push_index(2); mb.push_index(3); mb.push_index(0);
 
-	m_sandMesh = mb.build();
+    m_sandMesh = mb.build();
 
-	m_grassTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/grass.jpg"));
-	m_grassNormal = loadTexture(CGRA_SRCDIR + std::string( "/res/textures/normal.jpg"));
-	m_grassRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/roughness.jpg"));
-	m_sandTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/sand.png"));
+    m_grassTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/grass.jpg"));
+    m_grassNormal = loadTexture(CGRA_SRCDIR + std::string( "/res/textures/normal.jpg"));
+    m_grassRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/roughness.jpg"));
+    m_sandTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/sand.png"));
 
-	m_trunkTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_diff_4k.jpg"));
-	m_trunkNormal = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_nor_gl_4k.jpg"));
-	m_trunkRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_rough_4k.jpg"));
+    m_trunkTexture = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_diff_4k.jpg"));
+    m_trunkNormal = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_nor_gl_4k.jpg"));
+    m_trunkRoughness = loadTexture(CGRA_SRCDIR + std::string("/res/textures/bark_willow_rough_4k.jpg"));
 
-	initSkybox();
+    initSkybox();
 
-	if (m_grassTexture == 0 || m_grassNormal == 0 || m_grassRoughness == 0) {
-		std::cerr << "Warning: Some grass textures failed to load" << std::endl;
-	}
+    if (m_grassTexture == 0 || m_grassNormal == 0 || m_grassRoughness == 0) {
+        std::cerr << "Warning: Some grass textures failed to load" << std::endl;
+    }
 }
 
 void Application::initSkybox() {
-	glGenVertexArrays(1, &skyboxVAO);
-	glGenBuffers(1, &skyboxVBO);
-	glBindVertexArray(skyboxVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glBindVertexArray(0);
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
 }
 
 void Application::render() {
-	//temp
+    //temp
     int winW, winH;  glfwGetWindowSize(m_window, &winW, &winH);
     int fbW,  fbH;   glfwGetFramebufferSize(m_window, &fbW, &fbH);
     
@@ -223,28 +230,28 @@ void Application::render() {
     float aspect = (fbH > 0) ? float(fbW) / float(fbH) : 1.0f;
     
     
-	// retrieve the window hieght
-	int width, height;
-	glfwGetFramebufferSize(m_window, &width, &height); 
+    // retrieve the window hieght
+    int width, height;
+    glfwGetFramebufferSize(m_window, &width, &height);
 
-	m_windowsize = vec2(width, height); // update window size
-	//glViewport(0, 0, width, height); // set the viewport to draw to the entire window
+    m_windowsize = vec2(width, height); // update window size
+    //glViewport(0, 0, width, height); // set the viewport to draw to the entire window
 
-	// clear the back-buffer
-	glClearColor(0.3f, 0.3f, 0.4f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+    // clear the back-buffer
+    glClearColor(0.3f, 0.3f, 0.4f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// enable flags for normal/forward rendering
-	glEnable(GL_DEPTH_TEST); 
-	glDepthFunc(GL_LESS);
+    // enable flags for normal/forward rendering
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 
-	/** projection matrix
-	mat4 proj = perspective(1.f, float(width) / height, 0.1f, 1000.f);
+    /** projection matrix
+    mat4 proj = perspective(1.f, float(width) / height, 0.1f, 1000.f);
 
-	// view matrix
-	mat4 view = translate(mat4(1), vec3(0, 0, -m_distance))
-		* rotate(mat4(1), m_pitch, vec3(1, 0, 0))
-		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));*/
+    // view matrix
+    mat4 view = translate(mat4(1), vec3(0, 0, -m_distance))
+        * rotate(mat4(1), m_pitch, vec3(1, 0, 0))
+        * rotate(mat4(1), m_yaw,   vec3(0, 1, 0));*/
     
     //camera
     
@@ -259,50 +266,61 @@ void Application::render() {
     //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
     //m_panel.frame(width, height, m_mousePosition, leftDownScene, view, proj, m_cam);
     
-	m_time += 0.005f;
+    m_time += 0.005f;
 
-	// helpful draw options
-	if (m_show_grid) drawGrid(view, proj);
-	if (m_show_axis) drawAxis(view, proj);
-	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
+    // helpful draw options
+    if (m_show_grid) drawGrid(view, proj);
+    if (m_show_axis) drawAxis(view, proj);
+    glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
 
 
-	// draw the model
-	//m_model.draw(view, proj);
+    // draw the model
+    //m_model.draw(view, proj);
 
-	float angle = m_time * sunSpeed;
-	vec3 sunPos = vec3(
-		sunOrbitRadius * cos(angle),    // X: horizontal position
-		sunOrbitRadius * sin(angle),    // Y: vertical position (creates full circle)
-		0.0								// Z: keep at 0 for orbit in XY plane
-	);
+    float angle = m_time * sunSpeed;
+    vec3 sunPos = vec3(
+        sunOrbitRadius * cos(angle),    // X: horizontal position
+        sunOrbitRadius * sin(angle),    // Y: vertical position (creates full circle)
+        0.0                                // Z: keep at 0 for orbit in XY plane
+    );
 
-	float heightFactor = sin(angle);
-	vec3 sunColour;
+    float heightFactor = sin(angle);
+    vec3 sunColour;
 
-	if (heightFactor < 0.0f) {
-		sunColour = vec3(0.0f, 0.0f, 0.0f); // below horizon, no sun
-	}
-	else {
-		sunColour = mix(
-			vec3(1.0f, 0.5f, 0.2f), // Warm orange/red at horizon
-			vec3(1.0f, 1.0f, 1.0f), // Bright white at zenith
-			heightFactor);			// 0 at horizon, 1 at top
-	}
+    if (heightFactor < 0.0f) {
+        sunColour = vec3(0.0f, 0.0f, 0.0f); // below horizon, no sun
+    }
+    else {
+        sunColour = mix(
+            vec3(1.0f, 0.5f, 0.2f), // Warm orange/red at horizon
+            vec3(1.0f, 1.0f, 1.0f), // Bright white at zenith
+            heightFactor);            // 0 at horizon, 1 at top
+    }
 
-	// helpful draw options
-	if (m_show_grid) drawGrid(view, proj);
-	if (m_show_axis) drawAxis(view, proj);
-	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
+    // helpful draw options
+    if (m_show_grid) drawGrid(view, proj);
+    if (m_show_axis) drawAxis(view, proj);
+    glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
 
-	glDepthFunc(GL_LEQUAL);
-	renderSkybox(m_skyboxShader, skyboxVAO, dayCubemap, view, proj, sunPos, sunColour);
-	glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
+    renderSkybox(m_skyboxShader, skyboxVAO, dayCubemap, view, proj, sunPos, sunColour);
+    glDepthFunc(GL_LESS);
 
-	renderSandPlane(view, proj, m_time, sunPos, sunColour);
+    // cloud stuff
+    
+    // Calculate camera position from view matrix
+    glm::mat4 invView = glm::inverse(view);
+    glm::vec3 cameraPos = glm::vec3(invView[3]);
+    
+    // *** ADD CLOUDS HERE ***
+       if (m_showClouds) {
+           m_cloudRenderer.render(view, proj, cameraPos, m_time, sunPos, sunColour);
+       }
+    
+    renderSandPlane(view, proj, m_time, sunPos, sunColour);
 
-	// draw the model
-	m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness);
+    // draw the model
+    m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness);
   
 	// Draw trees
 	for (auto& tree : m_trees) {
@@ -311,152 +329,157 @@ void Application::render() {
 			m_trunkTexture, m_trunkNormal, m_trunkRoughness, cameraPos);
 	}
 
-	static auto lastTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-	lastTime = currentTime;
+    static auto lastTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+    lastTime = currentTime;
 
-	float sunHeight = sunPos.y;
-	float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
-
-	m_water.update(deltaTime);
-	m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour);
+    float sunHeight = sunPos.y;
+    float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
+        
+    m_water.update(deltaTime);
+    m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour);
 
 }
 
 void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, float time, const glm::vec3& sunPos, const glm::vec3& sunColour) {
-	glUseProgram(m_causticsShader);
+    glUseProgram(m_causticsShader);
 
-	// Model matrix for sand plane (identity, or translate if needed)
-	glm::mat4 modelview = view * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    // Model matrix for sand plane (identity, or translate if needed)
+    glm::mat4 modelview = view * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
-	// Set transformation uniforms
-	glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uModelViewMatrix"), 1, GL_FALSE, glm::value_ptr(modelview));
-	glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
-	glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunPos"), 1, glm::value_ptr(sunPos));
-	glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunColor"), 1, glm::value_ptr(sunColour));
+    // Set transformation uniforms
+    glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uModelViewMatrix"), 1, GL_FALSE, glm::value_ptr(modelview));
+    glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunPos"), 1, glm::value_ptr(sunPos));
+    glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunColor"), 1, glm::value_ptr(sunColour));
 
-	// Set caustics uniforms (tweak these as needed)
-	glUniform1f(glGetUniformLocation(m_causticsShader, "uTime"), time);
-	glUniform3fv(glGetUniformLocation(m_causticsShader, "uCausticsColor"), 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.8f))); // pale yellow caustics
-	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsIntensity"), 0.78f);
-	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsOffset"), 0.3f);
-	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsScale"), 8.0f);
-	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsSpeed"), 0.5f);
-	glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsThickness"), 0.75f);
+    // Set caustics uniforms (tweak these as needed)
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uTime"), time);
+    glUniform3fv(glGetUniformLocation(m_causticsShader, "uCausticsColor"), 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.8f))); // pale yellow caustics
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsIntensity"), 0.78f);
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsOffset"), 0.3f);
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsScale"), 8.0f);
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsSpeed"), 0.5f);
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsThickness"), 0.75f);
 
-	// Bind sand texture to texture unit 0
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_sandTexture);
-	glUniform1i(glGetUniformLocation(m_causticsShader, "uTexture"), 0);
+    // Bind sand texture to texture unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_sandTexture);
+    glUniform1i(glGetUniformLocation(m_causticsShader, "uTexture"), 0);
 
-	// Draw the sand mesh
-	m_sandMesh.draw();
+    // Draw the sand mesh
+    m_sandMesh.draw();
 }
 
 void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cubemap, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunPos, const glm::vec3& sunColour) {
-	glDepthMask(GL_FALSE);
-	glCullFace(GL_FRONT);
+    glDepthMask(GL_FALSE);
+    glCullFace(GL_FRONT);
 
-	glUseProgram(skyboxShader);
+    glUseProgram(skyboxShader);
 
-	float sunHeight = sunPos.y;
-	float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
+    float sunHeight = sunPos.y;
+    float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
 
-	glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(view));
-	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "view"), 1, GL_FALSE, glm::value_ptr(viewNoTranslation));
-	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(view));
+    glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "view"), 1, GL_FALSE, glm::value_ptr(viewNoTranslation));
+    glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-	glUniform3fv(glGetUniformLocation(skyboxShader, "uSunPos"), 1, glm::value_ptr(sunPos));
-	glUniform3fv(glGetUniformLocation(skyboxShader, "uSunColor"), 1, glm::value_ptr(sunColour));
+    glUniform3fv(glGetUniformLocation(skyboxShader, "uSunPos"), 1, glm::value_ptr(sunPos));
+    glUniform3fv(glGetUniformLocation(skyboxShader, "uSunColor"), 1, glm::value_ptr(sunColour));
 
-	// Pass blend factor
-	glUniform1f(glGetUniformLocation(m_skyboxShader, "uDayFactor"), dayFactor);
+    // Pass blend factor
+    glUniform1f(glGetUniformLocation(m_skyboxShader, "uDayFactor"), dayFactor);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, dayCubemap);
-	glUniform1i(glGetUniformLocation(m_skyboxShader, "uDayCubemap"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, dayCubemap);
+    glUniform1i(glGetUniformLocation(m_skyboxShader, "uDayCubemap"), 0);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, nightCubemap);
-	glUniform1i(glGetUniformLocation(m_skyboxShader, "uNightCubemap"), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, nightCubemap);
+    glUniform1i(glGetUniformLocation(m_skyboxShader, "uNightCubemap"), 1);
 
-	glBindVertexArray(skyboxVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glBindVertexArray(0);
+    glBindVertexArray(skyboxVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
 
-	glCullFace(GL_BACK);
-	glDepthMask(GL_TRUE);
+    glCullFace(GL_BACK);
+    glDepthMask(GL_TRUE);
 }
 
 
 void Application::renderGUI() {
 
-	// setup window
-	ImGui::SetNextWindowPos(ImVec2(5, 5), ImGuiSetCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiSetCond_Once);
-	ImGui::Begin("Options", 0);
+    // setup window
+    ImGui::SetNextWindowPos(ImVec2(5, 5), ImGuiSetCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiSetCond_Once);
+    ImGui::Begin("Options", 0);
 
-	// display current camera parameters
-	ImGui::Text("Application %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	//ImGui::SliderFloat("Pitch", &m_pitch, -pi<float>() / 2, pi<float>() / 2, "%.2f");
-	//ImGui::SliderFloat("Yaw", &m_yaw, -pi<float>(), pi<float>(), "%.2f");
-	//ImGui::SliderFloat("Distance", &m_distance, 0, 100, "%.2f", 2.0f);
+    // display current camera parameters
+    ImGui::Text("Application %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    //ImGui::SliderFloat("Pitch", &m_pitch, -pi<float>() / 2, pi<float>() / 2, "%.2f");
+    //ImGui::SliderFloat("Yaw", &m_yaw, -pi<float>(), pi<float>(), "%.2f");
+    //ImGui::SliderFloat("Distance", &m_distance, 0, 100, "%.2f", 2.0f);
 
-	// helpful drawing options
-	ImGui::Checkbox("Show axis", &m_show_axis);
-	ImGui::SameLine();
-	ImGui::Checkbox("Show grid", &m_show_grid);
-	ImGui::Checkbox("Wireframe", &m_showWireframe);
-	ImGui::SameLine();
-	if (ImGui::Button("Screenshot")) rgba_image::screenshot(true);
+    // helpful drawing options
+    ImGui::Checkbox("Show axis", &m_show_axis);
+    ImGui::SameLine();
+    ImGui::Checkbox("Show grid", &m_show_grid);
+    ImGui::Checkbox("Wireframe", &m_showWireframe);
+    ImGui::SameLine();
+    if (ImGui::Button("Screenshot")) rgba_image::screenshot(true);
 
-	
-	ImGui::Separator();
-	ImGui::Text("Terrain Settings");
+    // cloud stuff
+    ImGui::Separator();
+    ImGui::Text("Cloud Stuff");
+    ImGui::Checkbox("Show Clouds", &m_showClouds);
+    
+    
+    ImGui::Separator();
+    ImGui::Text("Terrain Settings");
 
-	static float amplitude = m_terrain.getAmplitude();
-	static float frequency = m_terrain.getFrequency();
-	static int octaves = m_terrain.getOctaves();
-	static float persistence = m_terrain.getPersistence();
-	static float lacunarity = m_terrain.getLacunarity();
-	static float minHeight = m_terrain.getMinHeight();
+    static float amplitude = m_terrain.getAmplitude();
+    static float frequency = m_terrain.getFrequency();
+    static int octaves = m_terrain.getOctaves();
+    static float persistence = m_terrain.getPersistence();
+    static float lacunarity = m_terrain.getLacunarity();
+    static float minHeight = m_terrain.getMinHeight();
 
-	bool terrainChanged = false;
+    bool terrainChanged = false;
 
-	if (ImGui::SliderFloat("Amplitude", &amplitude, 0.1f, 50.0f)) {
-		m_terrain.setAmplitude(amplitude);
-		terrainChanged = true;
-	}
+    if (ImGui::SliderFloat("Amplitude", &amplitude, 0.1f, 50.0f)) {
+        m_terrain.setAmplitude(amplitude);
+        terrainChanged = true;
+    }
 
-	if (ImGui::SliderFloat("Frequency", &frequency, 0.01f, 1.0f)) {
-		m_terrain.setFrequency(frequency);
-		terrainChanged = true;
-	}
+    if (ImGui::SliderFloat("Frequency", &frequency, 0.01f, 1.0f)) {
+        m_terrain.setFrequency(frequency);
+        terrainChanged = true;
+    }
 
-	if (ImGui::SliderInt("Octaves", &octaves, 1, 8)) {
-		m_terrain.setOctaves(octaves);
-		terrainChanged = true;
-	}
+    if (ImGui::SliderInt("Octaves", &octaves, 1, 8)) {
+        m_terrain.setOctaves(octaves);
+        terrainChanged = true;
+    }
 
-	if (ImGui::SliderFloat("Persistence", &persistence, 0.1f, 1.0f)) {
-		m_terrain.setPersistence(persistence);
-		terrainChanged = true;
-	}
+    if (ImGui::SliderFloat("Persistence", &persistence, 0.1f, 1.0f)) {
+        m_terrain.setPersistence(persistence);
+        terrainChanged = true;
+    }
 
-	if (ImGui::SliderFloat("Lacunarity", &lacunarity, 1.5f, 4.0f)) {
-		m_terrain.setLacunarity(lacunarity);
-		terrainChanged = true;
-	}
+    if (ImGui::SliderFloat("Lacunarity", &lacunarity, 1.5f, 4.0f)) {
+        m_terrain.setLacunarity(lacunarity);
+        terrainChanged = true;
+    }
 
-	if (terrainChanged) {
-		m_terrain.update();
-	}
+    if (terrainChanged) {
+        m_terrain.update();
+    }
 
-	if (ImGui::SliderFloat("Min Height (Water Depth)", &minHeight, -10.0f, 0.0f)) {
-		m_terrain.setMinHeight(minHeight);
-		terrainChanged = true;
-	}
+    if (ImGui::SliderFloat("Min Height (Water Depth)", &minHeight, -10.0f, 0.0f)) {
+        m_terrain.setMinHeight(minHeight);
+        terrainChanged = true;
+    }
     
     // tree stuff
     ImGui::Separator();
@@ -536,59 +559,59 @@ void Application::renderGUI() {
         }
     }
 
-	// finish creating window
-	ImGui::End();
+    // finish creating window
+    ImGui::End();
 }
 
 GLuint Application::loadCubemap(const std::vector<std::string>& faces) {
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-	int width, height, nrChannels;
+    int width, height, nrChannels;
 
-	std::cout << "Loading cubemap..." << std::endl;
+    std::cout << "Loading cubemap..." << std::endl;
 
-	for (GLuint i = 0; i < faces.size(); i++) {
-		std::cout << "Loading face " << i << ": " << faces[i] << std::endl;
+    for (GLuint i = 0; i < faces.size(); i++) {
+        std::cout << "Loading face " << i << ": " << faces[i] << std::endl;
 
-		// Force loading as RGB (3 channels) - the '3' parameter tells stbi to convert
-		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 3);
+        // Force loading as RGB (3 channels) - the '3' parameter tells stbi to convert
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 3);
 
-		if (data) {
-			std::cout << "  ✓ Loaded successfully: " << width << "x" << height
-				<< " (original had " << nrChannels << " channels, converted to RGB)" << std::endl;
+        if (data) {
+            std::cout << "  ✓ Loaded successfully: " << width << "x" << height
+                << " (original had " << nrChannels << " channels, converted to RGB)" << std::endl;
 
-			// Now we know it's always RGB since we forced it in stbi_load
-			glTexImage2D(
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0,
-				GL_RGB,  // Internal format
-				width, height, 0,
-				GL_RGB,  // Data format - always RGB now
-				GL_UNSIGNED_BYTE,
-				data
-			);
-			stbi_image_free(data);
-		}
-		else {
-			std::cerr << "  ✗ FAILED to load cubemap texture at path: " << faces[i] << std::endl;
-			std::cerr << "  STB Error: " << stbi_failure_reason() << std::endl;
-			stbi_image_free(data);
-			return 0; // Return 0 to indicate failure
-		}
-	}
+            // Now we know it's always RGB since we forced it in stbi_load
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0,
+                GL_RGB,  // Internal format
+                width, height, 0,
+                GL_RGB,  // Data format - always RGB now
+                GL_UNSIGNED_BYTE,
+                data
+            );
+            stbi_image_free(data);
+        }
+        else {
+            std::cerr << "  ✗ FAILED to load cubemap texture at path: " << faces[i] << std::endl;
+            std::cerr << "  STB Error: " << stbi_failure_reason() << std::endl;
+            stbi_image_free(data);
+            return 0; // Return 0 to indicate failure
+        }
+    }
 
-	// Set texture parameters
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-	std::cout << "Cubemap created with ID: " << textureID << std::endl;
+    std::cout << "Cubemap created with ID: " << textureID << std::endl;
 
-	return textureID;
+    return textureID;
 }
 
 void Application::cursorPosCallback(double xpos, double ypos) {
@@ -604,11 +627,11 @@ void Application::cursorPosCallback(double xpos, double ypos) {
 
 
 void Application::mouseButtonCallback(int button, int action, int mods) {
-	/**(void)mods; // currently un-used
+    /**(void)mods; // currently un-used
 
-	// capture is left-mouse down
-	if (button == GLFW_MOUSE_BUTTON_LEFT)
-		m_leftMouseDown = (action == GLFW_PRESS); // only other option is GLFW_RELEASE*/
+    // capture is left-mouse down
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+        m_leftMouseDown = (action == GLFW_PRESS); // only other option is GLFW_RELEASE*/
     
     (void)mods;
     if (button == GLFW_MOUSE_BUTTON_LEFT){
@@ -624,42 +647,42 @@ void Application::mouseButtonCallback(int button, int action, int mods) {
 
 
 void Application::scrollCallback(double xoffset, double yoffset) {
-	//(void)xoffset; // currently un-used
-	//m_distance *= pow(1.1f, -yoffset);
+    //(void)xoffset; // currently un-used
+    //m_distance *= pow(1.1f, -yoffset);
     
     m_cam.fovDeg = std::clamp(m_cam.fovDeg - float(yoffset) * 2.0f, 30.0f, 100.0f);
 }
 
 
 void Application::keyCallback(int key, int scancode, int action, int mods) {
-	(void)key, (void)scancode, (void)action, (void)mods; // currently un-used
+    (void)key, (void)scancode, (void)action, (void)mods; // currently un-used
 }
 
 
 void Application::charCallback(unsigned int c) {
-	(void)c; // currently un-used
+    (void)c; // currently un-used
 }
 
 
 GLuint Application::loadTexture(const std::string& filepath) {
-	try {
-		// Load image - constructor handles everything
-		cgra::rgba_image img(filepath);
+    try {
+        // Load image - constructor handles everything
+        cgra::rgba_image img(filepath);
 
-		// Set wrapping mode to repeat for tiling
-		img.wrap = glm::vec<2, GLenum>(GL_REPEAT, GL_REPEAT);
+        // Set wrapping mode to repeat for tiling
+        img.wrap = glm::vec<2, GLenum>(GL_REPEAT, GL_REPEAT);
 
-		// Upload to GPU - uploadTexture() handles all OpenGL calls
-		GLuint texture = img.uploadTexture();
+        // Upload to GPU - uploadTexture() handles all OpenGL calls
+        GLuint texture = img.uploadTexture();
 
-		std::cout << "Loaded texture: " << filepath << " ("
-			<< img.size.x << "x" << img.size.y << ")" << std::endl;
+        std::cout << "Loaded texture: " << filepath << " ("
+            << img.size.x << "x" << img.size.y << ")" << std::endl;
 
-		return texture;
-	}
-	catch (const std::exception& e) {
-		std::cerr << "Failed to load texture: " << filepath << std::endl;
-		std::cerr << "Error: " << e.what() << std::endl;
-		return 0;
-	}
+        return texture;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Failed to load texture: " << filepath << std::endl;
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 0;
+    }
 }
