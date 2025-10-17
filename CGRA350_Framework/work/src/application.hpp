@@ -13,6 +13,7 @@
 #include "Cockpit.hpp"
 #include "water.hpp"
 #include "tree.hpp"
+#include "cloud_renderer.hpp"
 
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
@@ -46,6 +47,11 @@ private:
 
 	Terrain m_terrain;
 	Water m_water;
+    
+    // Cloud Stuff
+    GLuint m_cloudShader;
+    CloudRenderer m_cloudRenderer;
+    bool m_showClouds = true;
     
     // Tree things
     std::vector<Tree> m_trees;
