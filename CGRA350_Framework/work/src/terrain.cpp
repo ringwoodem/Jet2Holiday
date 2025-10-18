@@ -329,3 +329,13 @@ void Terrain::regenerate() {
     generateHeightMap();
     generateMesh();
 }
+
+void Terrain::drawShadows(GLuint shader) {
+    if (!m_meshGenerated) {
+        generateMesh();
+    }
+
+	glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, false, glm::value_ptr(glm::mat4(1.0f)));
+
+    m_mesh.draw();
+}

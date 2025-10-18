@@ -41,6 +41,8 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 Application::Application(GLFWwindow *window) : m_window(window) {
     float scene_size = 200.0f;
 
+    initShadowMap();
+
     shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
     sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
@@ -77,6 +79,11 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     tree_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_vert.glsl"));
     tree_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_frag.glsl"));
     m_treeShader = tree_sb.build();
+
+	shader_builder shadow_sb;
+	shadow_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//shadow_vert.glsl"));
+	shadow_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//shadow_frag.glsl"));
+	m_shadowShader = shadow_sb.build();
 
     stbi_set_flip_vertically_on_load(false);
     std::vector<std::string> dayFaces = {
@@ -221,6 +228,23 @@ void Application::initSkybox() {
     glBindVertexArray(0);
 }
 
+void Application::initShadowMap() {
+	glGenFramebuffers(1, &m_shadowFBO);
+	glGenTextures(1, &m_shadowMap);
+	glBindTexture(GL_TEXTURE_2D, m_shadowMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_shadowFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadowMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Application::render() {
     //temp
     int winW, winH;  glfwGetWindowSize(m_window, &winW, &winH);
@@ -287,7 +311,7 @@ void Application::render() {
     float heightFactor = sin(angle);
     vec3 sunColour;
 
-    if (heightFactor < 0.0f) {
+    if (heightFactor < -5.0f) {
         sunColour = vec3(0.0f, 0.0f, 0.0f); // below horizon, no sun
     }
     else {
@@ -296,6 +320,8 @@ void Application::render() {
             vec3(1.0f, 1.0f, 1.0f), // Bright white at zenith
             heightFactor);            // 0 at horizon, 1 at top
     }
+
+	renderShadows(sunPos);
 
     // helpful draw options
     if (m_show_grid) drawGrid(view, proj);
@@ -407,6 +433,25 @@ void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cub
     glDepthMask(GL_TRUE);
 }
 
+void Application::renderShadows(glm::vec3 lightPos) {
+    glm::mat4 lightProjection, lightView;
+    glm::mat4 lightSpaceMatrix;
+	float near_plane = 1.0f, far_plane = 200.0f;
+
+	lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, near_plane, far_plane);
+	lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	lightSpaceMatrix = lightProjection * lightView;
+
+	glUseProgram(m_shadowShader);
+	glUniformMatrix4fv(glGetUniformLocation(m_shadowShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_shadowFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+
+    
+}
 
 void Application::renderGUI() {
 

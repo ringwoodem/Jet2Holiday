@@ -87,6 +87,8 @@ public:
         const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f),
         GLuint grassTexture = 0, GLuint grassNorm = 0, GLuint grassRough = 0);
 
+    void drawShadows(GLuint shader);
+
     // Setters for texture control
     void setGrassHeight(float height) { m_grassHeight = height; }
     void setRockHeight(float height) { m_rockHeight = height; }
