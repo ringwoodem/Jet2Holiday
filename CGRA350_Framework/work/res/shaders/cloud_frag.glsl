@@ -106,52 +106,45 @@ vec3 worleyNoise(vec3 p) {
 // ============================================
 
 float cloudDensity(vec3 pos, float time) {
-    // Very slow wind drift
-    vec3 windOffset = vec3(time * 0.02, 0.0, time * 0.01);
+    vec3 windOffset = vec3(time * 0.01, 0.0, time * 0.005); // Slower
     vec3 p = pos + windOffset;
     
-    // === STEP 1: BASE SHAPE (Large fluffy clouds) ===
-    // Use VERY LOW frequency Perlin for big puffy shapes
-    float baseShape = perlinFbm(p * 0.08, 3); // Much lower frequency!
-    baseShape = baseShape * 0.5 + 0.5; // Remap to 0-1
+    // BASE SHAPE - Lower frequency for bigger clouds
+    float baseShape = perlinFbm(p * 0.05, 4); // Was 0.08, 3
+    baseShape = baseShape * 0.5 + 0.5;
     
-    // === STEP 2: CLOUD COVERAGE (Where clouds exist) ===
-    // Another low-frequency Perlin to define cloud coverage
-    float coverage = perlinNoise(p * 0.05) * 0.5 + 0.5;
-    coverage = smoothstep(0.3, 0.7, coverage); // Creates distinct cloud regions
+    // COVERAGE - More coverage
+    float coverage = perlinNoise(p * 0.03) * 0.5 + 0.5; // Was 0.05
+    coverage = smoothstep(0.2, 0.8, coverage); // Wider range
     
     baseShape *= coverage;
     
-    // === STEP 3: WORLEY FOR EDGES (Wispy boundaries) ===
-    // Low-frequency Worley for cloud edges
-    vec3 worley1 = worleyNoise(p * 0.3);
-    float edges = (worley1.y - worley1.x); // F2-F1 creates cell boundaries
-    edges = smoothstep(0.0, 0.3, edges); // Soften the edges
+    // WORLEY - Less aggressive
+    vec3 worley1 = worleyNoise(p * 0.2); // Was 0.3
+    float edges = (worley1.y - worley1.x);
+    edges = smoothstep(0.0, 0.5, edges); // Softer
     
-    // Blend base with edges
-    float density = baseShape * (1.0 - edges * 0.4);
+    float density = baseShape * (1.0 - edges * 0.2); // Was 0.4
     
-    // === STEP 4: MEDIUM DETAIL ===
-    // Medium frequency for some variation
-    float mediumDetail = perlinNoise(p * 0.6) * 0.5 + 0.5;
-    density = mix(density, density * mediumDetail, 0.3);
+    // MEDIUM DETAIL - Subtle
+    float mediumDetail = perlinNoise(p * 0.5) * 0.5 + 0.5;
+    density = mix(density, density * mediumDetail, 0.2);
     
-    // === STEP 5: FINE DETAIL (Subtle texture) ===
-    // High frequency but LOW IMPACT for subtle texture
-    vec3 worley2 = worleyNoise(p * 2.0);
-    float fineDetail = worley2.x;
-    density -= fineDetail * 0.15; // Very subtle erosion
+    // FINE DETAIL - FIX THE RIPPLES
+    // Use multiplication instead of subtraction
+    vec3 worley2 = worleyNoise(p * 1.5); // Was 2.0
+    float fineDetail = 1.0 - worley2.x * 0.3; // Scale down
+    density *= mix(1.0, fineDetail, 0.15); // Very subtle
     
-    // === HEIGHT GRADIENT ===
-    float cloudBottom = 25.0;
-    float cloudTop = 45.0;
-    float heightFactor = smoothstep(cloudBottom - 3.0, cloudBottom + 3.0, pos.y) *
-                        (1.0 - smoothstep(cloudTop - 8.0, cloudTop + 2.0, pos.y));
+    // HEIGHT GRADIENT - Taller clouds
+    float cloudBase = 25.0;
+    float cloudTop = 50.0; // Was 45.0
+    float heightFactor = smoothstep(cloudBase - 2.0, cloudBase + 5.0, pos.y) *
+                        (1.0 - smoothstep(cloudTop - 10.0, cloudTop + 3.0, pos.y));
     density *= heightFactor;
     
-    // === FINAL THRESHOLD ===
-    // Sharper threshold for more defined clouds
-    density = smoothstep(0.4, 0.65, density);
+    // THRESHOLD - Softer for puffier clouds
+    density = smoothstep(0.3, 0.7, density); // Was 0.4, 0.65
     
     return clamp(density, 0.0, 1.0);
 }
@@ -159,20 +152,19 @@ float cloudDensity(vec3 pos, float time) {
 // ============================================
 // IMPROVED LIGHTING
 // ============================================
-
 float cloudLighting(vec3 pos, vec3 sunDir, float time) {
-    // Take fewer, larger samples for lighting
-    float shadowSample1 = cloudDensity(pos + sunDir * 2.0, time);
-    float shadowSample2 = cloudDensity(pos + sunDir * 4.0, time);
+    // Larger steps for softer shadows
+    float shadowSample1 = cloudDensity(pos + sunDir * 3.0, time); // Was 2.0
+    float shadowSample2 = cloudDensity(pos + sunDir * 6.0, time); // Was 4.0
     
-    // Beer's law with less aggressive shadowing
-    float shadow = exp(-shadowSample1 * 1.5 - shadowSample2 * 0.8);
+    // Less aggressive shadowing for brighter clouds
+    float shadow = exp(-shadowSample1 * 1.0 - shadowSample2 * 0.5); // Was 1.5, 0.8
     
-    // Add powder effect (bright edges on lit side)
-    float powder = 1.0 - exp(-shadowSample1 * 2.0);
-    shadow = mix(shadow, 1.0, powder * 0.3);
+    // More powder effect for fluffy appearance
+    float powder = 1.0 - exp(-shadowSample1 * 2.5);
+    shadow = mix(shadow, 1.0, powder * 0.5); // Was 0.3
     
-    return clamp(shadow, 0.1, 1.0); // Never fully black
+    return clamp(shadow, 0.3, 1.0); // Brighter minimum (was 0.1)
 }
 
 // ============================================
@@ -198,7 +190,7 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
     float tEnd = max(tBottom, tTop);
     
     // Fewer steps but larger step size for performance
-    const int MAX_STEPS = 48;
+    const int MAX_STEPS = 38; //24; //48;
     float stepSize = (tEnd - tStart) / float(MAX_STEPS);
     
     vec3 pos = rayOrigin + rayDir * tStart;
@@ -207,9 +199,9 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
     
     vec3 sunDir = normalize(uSunPos);
     
-    // Richer ambient color
-    vec3 skyAmbient = vec3(0.4, 0.5, 0.7) * 0.4;
-    vec3 sunAmbient = uSunColor * 0.2;
+    // BRIGHTER ambient
+    vec3 skyAmbient = vec3(0.6, 0.7, 0.9) * 0.6; // Brighter
+    vec3 sunAmbient = uSunColor * 0.3; // More sun contribution
     vec3 ambient = skyAmbient + sunAmbient;
     
     for(int i = 0; i < MAX_STEPS; i++) {
@@ -217,22 +209,21 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
         
         float density = cloudDensity(pos, time);
         
-        if(density > 0.02) {
-            // Lighting calculation
+        if(density > 0.01) { // Lower threshold
             float sunVisibility = cloudLighting(pos, sunDir, time);
             
-            // Henyey-Greenstein phase function approximation
+            // Phase function
             float cosAngle = dot(rayDir, sunDir);
-            float g = 0.3; // Forward scattering
+            float g = 0.3;
             float phase = (1.0 - g * g) / (4.0 * 3.14159 * pow(1.0 + g * g - 2.0 * g * cosAngle, 1.5));
-            phase = mix(0.7, 1.0, phase * 2.0); // Simplified
+            phase = mix(0.8, 1.0, phase * 2.0); // Brighter base
             
-            // Combine lighting
-            vec3 sunLight = uSunColor * sunVisibility * phase;
-            vec3 lighting = sunLight + ambient;
+            // Combine with MORE ambient influence
+            vec3 sunLight = uSunColor * sunVisibility * phase * 1.2; // Boost sun
+            vec3 lighting = sunLight + ambient * 1.5; // Boost ambient
             
-            // Energy conserving integration
-            float dt = density * stepSize * 1.5;
+            // Integration
+            float dt = density * stepSize * 1.2; // Less dense
             float sampleTransmittance = exp(-dt);
             
             lightAccum += transmittance * (1.0 - sampleTransmittance) * lighting;
@@ -256,7 +247,6 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
 // ============================================
 // MAIN
 // ============================================
-
 void main() {
     vec3 rayDir = normalize(fragRayDir - uCameraPos);
     
@@ -270,7 +260,11 @@ void main() {
     float horizonFade = smoothstep(0.0, 0.25, rayDir.y);
     clouds.a *= horizonFade;
     
-    // Atmospheric scattering (distant clouds fade to sky color)
+    // FIX: Brighten clouds and ensure they're white
+    // Boost the brightness significantly
+    clouds.rgb *= 1.5; // Make clouds brighter
+    
+    // Atmospheric scattering
     float distance = length(fragRayDir - uCameraPos);
     float atmosphericFade = exp(-distance * 0.0005);
     vec3 skyColor = vec3(0.5, 0.65, 0.85);

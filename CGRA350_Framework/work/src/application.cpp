@@ -112,6 +112,7 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     cloud_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("/res/shaders/cloud_vert.glsl"));
     cloud_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("/res/shaders/cloud_frag.glsl"));
     m_cloudShader = cloud_sb.build();
+    
     // Initialize cloud renderer
     m_cloudRenderer.init(m_cloudShader);
     
