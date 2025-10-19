@@ -45,6 +45,7 @@ private:
 	GLuint m_causticsShader;
 	GLuint m_treeShader;
 	GLuint m_shadowShader;
+	glm::mat4 lightSpaceMatrix;
 
 	Terrain m_terrain;
 	Water m_water;
@@ -69,7 +70,7 @@ private:
 
 	GLuint m_shadowFBO;
 	GLuint m_shadowMap;
-	const int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+	const int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
 	float skyboxVertices[108] = {
 		// positions          

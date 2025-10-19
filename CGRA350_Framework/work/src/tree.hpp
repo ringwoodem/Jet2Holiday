@@ -131,7 +131,10 @@ public:
     void regenerate();
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
         const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f),
-        GLuint trunkDiffuse = 0, GLuint trunkNormal = 0, GLuint trunkRoughness = 0, const glm::vec3& cameraPos = glm::vec3(0.0f, 1.0f, 0.0f));
+        GLuint trunkDiffuse = 0, GLuint trunkNormal = 0, GLuint trunkRoughness = 0, const glm::vec3& cameraPos = glm::vec3(0.0f, 1.0f, 0.0f), 
+        const glm::mat4& lightSpaceMatrix = glm::mat4(1.0f), GLuint shadowMap = 0);
+
+    void drawShadows(GLuint shader);
     
     TreeParameters& getParameters() { return m_params; }
     

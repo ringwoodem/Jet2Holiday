@@ -6,15 +6,18 @@ layout(location = 2) in vec2 aTexCoord;
 
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
+uniform mat4 uLightSpacematrix;
 
 // Output world-space position and normal
 out vec3 vWorldPos;
 out vec3 vNormal;
 out vec2 vUv;
+out vec4 vFragPosLightSpace;
 
 void main() {
     vUv = aTexCoord;
     vWorldPos = aPosition;      // world-space position
     vNormal = normalize(aNormal); // world-space normal
+    vFragPosLightSpace = uLightSpacematrix * vec4(vWorldPos, 1.0);
     gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
 }

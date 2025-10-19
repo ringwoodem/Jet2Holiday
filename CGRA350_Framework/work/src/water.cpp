@@ -162,7 +162,8 @@ void Water::update(float deltaTime) {
 }
 
 void Water::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, GLuint cubemap,
-    const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour) {
+    const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour,
+    const glm::mat4& lightSpaceMatrix, GLuint shadowMap) {
     if (!m_meshGenerated) return;
 
     glEnable(GL_DEPTH_TEST);
@@ -181,6 +182,11 @@ void Water::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, GL
     glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(shader, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(shader, "uLightSpaceMatrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
+
+    glActiveTexture(GL_TEXTURE1); // or whatever texture unit you're not using
+    glBindTexture(GL_TEXTURE_2D, shadowMap);
+    glUniform1i(glGetUniformLocation(shader, "uShadowMap"), 1);
 
     glUniform3fv(glGetUniformLocation(shader, "cameraPosition"), 1, glm::value_ptr(cameraPos));
 
@@ -200,6 +206,11 @@ void Water::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, GL
 
     glUniform1f(glGetUniformLocation(shader, "uFresnelScale"), 0.65f);       // adjust as needed
     glUniform1f(glGetUniformLocation(shader, "uFresnelPower"), 0.68f);       // adjust as needed
+
+    glUniform1f(glGetUniformLocation(shader, "uLightSize"), 0.01f);
+    glUniform1f(glGetUniformLocation(shader, "uNearPlane"), 0.1f);
+    glUniform1i(glGetUniformLocation(shader, "uBlockerSearchSamples"), 16);
+    glUniform1i(glGetUniformLocation(shader, "uPCFSamples"), 32);
 
     glUniform1f(glGetUniformLocation(shader, "uTime"), m_time);
     glUniform1f(glGetUniformLocation(shader, "uWavesAmplitude"), 0.02f);

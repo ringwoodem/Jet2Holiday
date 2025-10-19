@@ -7,6 +7,7 @@ layout(location = 0) in vec3 position;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
+uniform mat4 uLightSpaceMatrix;
 
 uniform float uTime;
 uniform float uWavesAmplitude;
@@ -18,6 +19,7 @@ uniform float uWavesIterations;
 
 out vec3 vNormal;
 out vec3 vWorldPosition;
+out vec4 vFragPosLightSpace;
 
 //	Simplex 3D Noise 
 //
@@ -93,6 +95,7 @@ void main() {
 
   vNormal = objectNormal;
   vWorldPosition = modelPosition.xyz;
+  vFragPosLightSpace = uLightSpaceMatrix * modelPosition;
 
   gl_Position = projectionMatrix * viewMatrix * modelPosition;
 }

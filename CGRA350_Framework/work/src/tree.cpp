@@ -472,7 +472,7 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
 
 void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
     const glm::vec3& sunPos, const glm::vec3& sunColour,
-    GLuint trunkDiffuse, GLuint trunkNormal, GLuint trunkRoughness, const glm::vec3& cameraPos) {
+    GLuint trunkDiffuse, GLuint trunkNormal, GLuint trunkRoughness, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, GLuint shadowMap) {
     if (!m_meshGenerated) {
         std::cout << "=== GENERATING TREE ===" << std::endl;
         m_stems.clear();
@@ -499,6 +499,7 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
     glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, GL_FALSE, glm::value_ptr(modelview));
     glUniformMatrix4fv(glGetUniformLocation(shader, "uModelMatrix"), 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(glGetUniformLocation(shader, "uLightSpacematrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 
     // Set lighting uniforms
     glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
@@ -518,6 +519,10 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
     glBindTexture(GL_TEXTURE_2D, trunkRoughness);
     glUniform1i(glGetUniformLocation(shader, "uTrunkRoughness"), 2);
 
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, shadowMap);
+    glUniform1i(glGetUniformLocation(shader, "uShadowMap"), 3);
+
     // Draw trunk (not leaves)
     glUniform1i(glGetUniformLocation(shader, "uIsLeaf"), 0);
     if (m_trunkMesh.vbo != 0 && m_trunkMesh.index_count > 0) {
@@ -532,6 +537,40 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
 
     // Draw leaves (IS leaves)
     glUniform1i(glGetUniformLocation(shader, "uIsLeaf"), 1);
+    if (m_params.hasLeaves && m_leavesMesh.vbo != 0 && m_leavesMesh.index_count > 0) {
+        m_leavesMesh.draw();
+    }
+}
+
+void Tree::drawShadows(GLuint shader) {
+    if (!m_meshGenerated) {
+        m_stems.clear();
+        float trunkLength = m_params.scale * m_params.level[0].nLength;
+        generateStem(0, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), trunkLength, m_params.baseSize);
+        generateMeshFromSegments();
+        generateLeavesMesh();
+        m_meshGenerated = true;
+    }
+
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), m_position);
+    if (glm::length(m_rotation) > 0.001f) {
+        model = glm::rotate(model, m_rotation.x, glm::vec3(1, 0, 0));
+        model = glm::rotate(model, m_rotation.y, glm::vec3(0, 1, 0));
+        model = glm::rotate(model, m_rotation.z, glm::vec3(0, 0, 1));
+    }
+
+    glUseProgram(shader);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, false, glm::value_ptr(model));
+
+    // Draw trunk
+    if (m_trunkMesh.vbo != 0 && m_trunkMesh.index_count > 0) {
+        m_trunkMesh.draw();
+    }
+    // Draw branches
+    if (m_branchesMesh.vbo != 0 && m_branchesMesh.index_count > 0) {
+        m_branchesMesh.draw();
+    }
+    // draw leaves
     if (m_params.hasLeaves && m_leavesMesh.vbo != 0 && m_leavesMesh.index_count > 0) {
         m_leavesMesh.draw();
     }

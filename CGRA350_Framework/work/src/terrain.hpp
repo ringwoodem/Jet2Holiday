@@ -85,7 +85,7 @@ public:
     // Rendering
     void draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color = glm::vec3(0.2f, 0.8f, 0.2f), 
         const glm::vec3& sunPos = glm::vec3(0.0f, 100.0f, 0.0f), const glm::vec3& sunColour = glm::vec3(1.0f, 1.0f, 1.0f),
-        GLuint grassTexture = 0, GLuint grassNorm = 0, GLuint grassRough = 0);
+        GLuint grassTexture = 0, GLuint grassNorm = 0, GLuint grassRough = 0, const glm::mat4& lightSpaceMatrix = glm::mat4(1.0f), GLuint shadowMap = 0);
 
     void drawShadows(GLuint shader);
 
