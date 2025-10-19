@@ -335,11 +335,14 @@ void Tree::createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
     int segments = 10;  // More segments for smoother leaves
     float width = lp.lobeWidth * scale;
     float height = lp.lobeHeight * scale;
+
+    glm::vec3 colour = glm::vec3(0.518f, 0.929f, 0.204f);
     
     cgra::mesh_vertex centerVert;
     centerVert.pos = center;
     centerVert.norm = normal;
     centerVert.uv = glm::vec2(0.5f, 0.5f);
+    centerVert.col = colour;
     mb.push_vertex(centerVert);
     
     for (int i = 0; i <= segments; i++) {
@@ -363,6 +366,7 @@ void Tree::createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
         v.pos = center + right * x + up * y;
         v.norm = normal;
         v.uv = glm::vec2(0.5f + x / width * 0.5f, 0.5f + y / height * 0.5f);
+        v.col = colour;
         mb.push_vertex(v);
     }
     
@@ -376,6 +380,7 @@ void Tree::createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
     // Back face
     GLuint backBaseIdx = static_cast<GLuint>(mb.vertices.size());
     centerVert.norm = -normal;
+    centerVert.col = colour;
     mb.push_vertex(centerVert);
     
     for (int i = 0; i <= segments; i++) {
@@ -397,6 +402,7 @@ void Tree::createSimpleLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
         v.pos = center + right * x + up * y;
         v.norm = -normal;
         v.uv = glm::vec2(0.5f + x / width * 0.5f, 0.5f + y / height * 0.5f);
+        v.col = colour;
         mb.push_vertex(v);
     }
     
@@ -412,11 +418,14 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
                           const glm::vec3& normal, float scale,
                           const LeafParameters& lp) {
     size_t baseIdx = mb.vertices.size();
+
+    glm::vec3 colour = glm::vec3(0.376f, 0.722f, 0.114f);
     
     cgra::mesh_vertex centerVert;
     centerVert.pos = center + up * lp.lobeOffset * scale;
     centerVert.norm = normal;
     centerVert.uv = glm::vec2(0.5f, 0.5f);
+    centerVert.col = colour;
     mb.push_vertex(centerVert);
     
     std::vector<glm::vec3> lobePoints;
@@ -441,6 +450,7 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
         v.pos = lobePoints[i];
         v.norm = normal;
         v.uv = glm::vec2(0.5f, 0.5f);
+        v.col = colour;
         mb.push_vertex(v);
     }
     
@@ -453,6 +463,7 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
     // Back face
     size_t backBaseIdx = mb.vertices.size();
     centerVert.norm = -normal;
+    centerVert.col = colour;
     mb.push_vertex(centerVert);
     
     for (size_t i = 0; i < lobePoints.size(); i++) {
@@ -460,6 +471,7 @@ void Tree::createLobedLeaf(cgra::mesh_builder& mb, const glm::vec3& center,
         v.pos = lobePoints[i];
         v.norm = -normal;
         v.uv = glm::vec2(0.5f, 0.5f);
+        v.col = colour;
         mb.push_vertex(v);
     }
     
@@ -505,6 +517,10 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
     glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColour));
     glUniform3fv(glGetUniformLocation(shader, "uCameraPos"), 1, glm::value_ptr(cameraPos));
+    glUniform1f(glGetUniformLocation(shader, "uLightSize"), 0.01f);
+    glUniform1f(glGetUniformLocation(shader, "uNearPlane"), 0.1f);
+    glUniform1i(glGetUniformLocation(shader, "uBlockerSearchSamples"), 16);
+    glUniform1i(glGetUniformLocation(shader, "uPCFSamples"), 32);
 
     // Bind textures
     glActiveTexture(GL_TEXTURE0);

@@ -95,9 +95,11 @@ const vec2 poissonDisk[64] = vec2[](
 vec4 permute(vec4 x) {
   return mod(((x * 34.0) + 1.0) * x, 289.0);
 }
+
 vec4 taylorInvSqrt(vec4 r) {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
+
 float snoise(vec3 v) {
   const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
   const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
@@ -225,7 +227,8 @@ void main() {
     );
     
     // Apply shadow to diffuse lighting
-    vec3 diffuse = dayFactor * sunIntensity * texColor.rgb * vSunColor * (1.0 - shadow);
+    float shadowFactor = 1.0 - shadow;  // Now 0 = shadow, 1 = lit
+    vec3 diffuse = dayFactor * sunIntensity * texColor.rgb * vSunColor * shadowFactor;
     
     // Only calculate caustics when sun is above horizon and not in shadow
     float caustics = 0.0;

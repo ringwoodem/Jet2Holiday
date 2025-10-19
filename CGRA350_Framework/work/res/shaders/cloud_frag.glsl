@@ -94,10 +94,10 @@ vec3 worleyNoise(vec3 p) {
     return vec3(minDist1, minDist2, minDist3);
 }
 
-// Coloud Density
+// Cloud Density
 
 float cloudDensity(vec3 pos, float time) {
-    vec3 windOffset = vec3(time * 0.01, 0.0, time * 0.005); // Slower
+    vec3 windOffset = vec3(time * 0.01, 0.0, time * 0.005);
     vec3 p = pos + windOffset;
     
     // BASE SHAPE - Lower frequency for bigger clouds
@@ -121,15 +121,14 @@ float cloudDensity(vec3 pos, float time) {
     float mediumDetail = perlinNoise(p * 0.5) * 0.5 + 0.5;
     density = mix(density, density * mediumDetail, 0.2);
     
-    
-    // Use multiplication
-    vec3 worley2 = worleyNoise(p * 1.5); // Was 2.0
-    float fineDetail = 1.0 - worley2.x * 0.3; // Scale down
-    density *= mix(1.0, fineDetail, 0.15); // Very subtle
+    // FINE DETAIL
+    vec3 worley2 = worleyNoise(p * 1.5);
+    float fineDetail = 1.0 - worley2.x * 0.3;
+    density *= mix(1.0, fineDetail, 0.15);
     
     // HEIGHT GRADIENT - Taller clouds
     float cloudBase = 25.0;
-    float cloudTop = 50.0; // Was 45.0
+    float cloudTop = 50.0;
     float heightFactor = smoothstep(cloudBase - 2.0, cloudBase + 5.0, pos.y) *
                         (1.0 - smoothstep(cloudTop - 10.0, cloudTop + 3.0, pos.y));
     density *= heightFactor;
@@ -141,7 +140,12 @@ float cloudDensity(vec3 pos, float time) {
 }
 
 // Lighting
-float cloudLighting(vec3 pos, vec3 sunDir, float time) {
+float cloudLighting(vec3 pos, vec3 sunDir, float time, float dayFactor) {
+    // During night, skip expensive shadow calculations
+    if (dayFactor < 0.01) {
+        return 0.1; // Minimal lighting at night
+    }
+    
     // Larger steps for softer shadows
     float shadowSample1 = cloudDensity(pos + sunDir * 3.0, time);
     float shadowSample2 = cloudDensity(pos + sunDir * 6.0, time);
@@ -176,9 +180,13 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
     float tStart = max(0.0, min(tBottom, tTop));
     float tEnd = max(tBottom, tTop);
     
-    // Fewer steps but larger step size for performance
-    const int MAX_STEPS = 48;
-    float stepSize = (tEnd - tStart) / float(MAX_STEPS);
+    // Calculate day factor based on sun height
+    float sunHeight = uSunPos.y;
+    float dayFactor = smoothstep(-10.0, 10.0, sunHeight); // Transition zone
+    
+    // Adaptive step count - fewer steps at night for performance
+    int maxSteps = int(mix(24.0, 48.0, dayFactor));
+    float stepSize = (tEnd - tStart) / float(maxSteps);
     
     vec3 pos = rayOrigin + rayDir * tStart;
     float transmittance = 1.0;
@@ -186,27 +194,28 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
     
     vec3 sunDir = normalize(uSunPos);
     
-    // BRIGHTER ambient
-    vec3 skyAmbient = vec3(0.6, 0.7, 0.9) * 0.6; // Brighter
-    vec3 sunAmbient = uSunColor * 0.3; // More sun contribution
-    vec3 ambient = skyAmbient + sunAmbient;
+    // Day/Night ambient lighting
+    vec3 dayAmbient = vec3(0.6, 0.7, 0.9) * 0.6 + uSunColor * 0.3;
+    vec3 nightAmbient = vec3(0.02, 0.03, 0.05); // Very dark blue-grey at night
+    vec3 ambient = mix(nightAmbient, dayAmbient, dayFactor);
     
-    for(int i = 0; i < MAX_STEPS; i++) {
+    for(int i = 0; i < maxSteps; i++) {
         if(transmittance < 0.01) break;
         
         float density = cloudDensity(pos, time);
         
-        if(density > 0.01) { // Lower threshold
-            float sunVisibility = cloudLighting(pos, sunDir, time);
+        if(density > 0.01) {
+            float sunVisibility = cloudLighting(pos, sunDir, time, dayFactor);
             
-            // Phase function
+            // Phase function (less important at night)
             float cosAngle = dot(rayDir, sunDir);
             float g = 0.3;
             float phase = (1.0 - g * g) / (4.0 * 3.14159 * pow(1.0 + g * g - 2.0 * g * cosAngle, 1.5));
             phase = mix(0.8, 1.0, phase * 2.0);
             
-            vec3 sunLight = uSunColor * sunVisibility * phase * 1.2;
-            vec3 lighting = sunLight + ambient * 1.5;
+            // Scale sun contribution by day factor
+            vec3 sunLight = uSunColor * sunVisibility * phase * 1.2 * dayFactor;
+            vec3 lighting = sunLight + ambient * mix(0.5, 1.5, dayFactor);
             
             // Integration
             float dt = density * stepSize * 1.2;
@@ -221,11 +230,13 @@ vec4 renderClouds(vec3 rayOrigin, vec3 rayDir, float time) {
     
     float alpha = 1.0 - transmittance;
     
-    // Silver lining (bright edges toward sun)
-    float edgeFactor = pow(1.0 - transmittance, 3.0);
-    float sunDot = max(0.0, dot(rayDir, sunDir));
-    float silverLining = edgeFactor * sunDot * 0.4;
-    lightAccum += uSunColor * silverLining;
+    // Silver lining (only during day)
+    if (dayFactor > 0.1) {
+        float edgeFactor = pow(1.0 - transmittance, 3.0);
+        float sunDot = max(0.0, dot(rayDir, sunDir));
+        float silverLining = edgeFactor * sunDot * 0.4 * dayFactor;
+        lightAccum += uSunColor * silverLining;
+    }
     
     return vec4(lightAccum, alpha);
 }
@@ -244,13 +255,18 @@ void main() {
     float horizonFade = smoothstep(0.0, 0.25, rayDir.y);
     clouds.a *= horizonFade;
 
-    // Boost the brightness significantly
-    clouds.rgb *= 1.5; // Make clouds brighter
+    // Day/night brightness adjustment
+    float sunHeight = uSunPos.y;
+    float dayFactor = smoothstep(-10.0, 10.0, sunHeight);
+    float brightnessFactor = mix(0.8, 1.5, dayFactor); // Darker at night, brighter during day
+    clouds.rgb *= brightnessFactor;
     
-    // Atmospheric scattering
+    // Atmospheric scattering - different colors for day/night
     float distance = length(fragRayDir - uCameraPos);
     float atmosphericFade = exp(-distance * 0.0005);
-    vec3 skyColor = vec3(0.5, 0.65, 0.85);
+    vec3 daySkyColor = vec3(0.5, 0.65, 0.85);
+    vec3 nightSkyColor = vec3(0.01, 0.02, 0.04); // Very dark at night
+    vec3 skyColor = mix(nightSkyColor, daySkyColor, dayFactor);
     clouds.rgb = mix(skyColor, clouds.rgb, atmosphericFade);
     
     fragColor = clouds;

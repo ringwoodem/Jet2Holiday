@@ -59,6 +59,9 @@ namespace cgra {
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), (void *)(offsetof(mesh_vertex, uv)));
 
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), (void*)offsetof(mesh_vertex, col));
+		glEnableVertexAttribArray(3);
+
 
 		// IBO
 		//

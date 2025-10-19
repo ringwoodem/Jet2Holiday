@@ -39,6 +39,7 @@ namespace cgra {
 		glm::vec3 pos{0};
 		glm::vec3 norm{0};
 		glm::vec2 uv{0};
+		glm::vec3 col{ 1,1,1 };
 	};
 
 

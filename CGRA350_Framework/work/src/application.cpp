@@ -376,7 +376,7 @@ void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, 
     glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunPos"), 1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunColor"), 1, glm::value_ptr(sunColour));
-    glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uLightSpaceMatrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uLightSpacematrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
 
     // Set caustics uniforms (tweak these as needed)
     glUniform1f(glGetUniformLocation(m_causticsShader, "uTime"), time);
