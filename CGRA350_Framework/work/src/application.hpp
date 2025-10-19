@@ -44,6 +44,8 @@ private:
 	GLuint m_skyboxShader;
 	GLuint m_causticsShader;
 	GLuint m_treeShader;
+	GLuint m_shadowShader;
+	glm::mat4 lightSpaceMatrix;
 
 	Terrain m_terrain;
 	Water m_water;
@@ -65,6 +67,10 @@ private:
 	GLuint dayCubemap;
 	GLuint nightCubemap;
 	GLuint skyboxVAO = 0, skyboxVBO = 0;
+
+	GLuint m_shadowFBO;
+	GLuint m_shadowMap;
+	const int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
 	float skyboxVertices[108] = {
 		// positions          
@@ -170,6 +176,8 @@ public:
 	GLuint loadTexture(const std::string& filepath);
 	GLuint loadCubemap(const std::vector<std::string>& faces);
 	void initSkybox();
+	void initShadowMap();
 	void renderSandPlane(const glm::mat4& view, const glm::mat4& proj, float time, const glm::vec3& sunPos, const glm::vec3& sunColour);
 	void renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cubemap, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunPos, const glm::vec3& sunColour);
+	void renderShadows(glm::vec3 lightPos);
 };

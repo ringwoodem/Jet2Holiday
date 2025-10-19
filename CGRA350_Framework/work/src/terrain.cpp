@@ -262,7 +262,7 @@ glm::vec3 Terrain::getNormalAtWorld(float worldX, float worldZ) const {
 }
 
 void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour,
-    GLuint grassDiff, GLuint grassNorm, GLuint grassRough) {
+    GLuint grassDiff, GLuint grassNorm, GLuint grassRough, const glm::mat4& lightSpaceMatrix, GLuint shadowMap) {
     if (!m_meshGenerated) {
         generateMesh();
     }
@@ -272,6 +272,7 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, glm::value_ptr(proj));
     glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, glm::value_ptr(modelview));
+	glUniformMatrix4fv(glGetUniformLocation(shader, "uLightSpacematrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
     glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
 
 	// Example values for terrain shader uniforms
@@ -284,6 +285,12 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     float terrainWaterDepth = 2.0f;
     float windIntensity = 1.0f;
 
+    // PCSS Parameters
+    float lightSize = 0.01f;              // Controls shadow softness (0.005-0.02 range)
+    float nearPlane = 0.1f;               // Should match your shadow camera's near plane
+    int blockerSearchSamples = 32;        // Blocker search quality (8-32)
+    int pcfSamples = 64;                  // PCF filter quality (16-64)
+
     glUniform3fv(glGetUniformLocation(shader, "uCameraPos"), 1, glm::value_ptr(cameraPos));
     glUniform3fv(glGetUniformLocation(shader, "uSunPos"), 1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(shader, "uSunColor"), 1, glm::value_ptr(sunColour));
@@ -293,6 +300,11 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glUniform1f(glGetUniformLocation(shader, "uWaterDepth"), terrainWaterDepth);
     glUniform1f(glGetUniformLocation(shader, "uWindIntensity"), windIntensity);
 
+    // Set PCSS uniforms
+    glUniform1f(glGetUniformLocation(shader, "uLightSize"), lightSize);
+    glUniform1f(glGetUniformLocation(shader, "uNearPlane"), nearPlane);
+    glUniform1i(glGetUniformLocation(shader, "uBlockerSearchSamples"), blockerSearchSamples);
+    glUniform1i(glGetUniformLocation(shader, "uPCFSamples"), pcfSamples);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, grassDiff);
@@ -305,6 +317,10 @@ void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, grassRough);
     glUniform1i(glGetUniformLocation(shader, "uGrassRoughness"), 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, shadowMap);
+    glUniform1i(glGetUniformLocation(shader, "uShadowMap"), 3);
 
     glUniform1i(glGetUniformLocation(shader, "uUseTextures"), 1);
     glUniform1f(glGetUniformLocation(shader, "uGrassHeight"), m_grassHeight);
@@ -328,4 +344,15 @@ void Terrain::regenerate() {
     m_meshGenerated = false;
     generateHeightMap();
     generateMesh();
+}
+
+void Terrain::drawShadows(GLuint shader) {
+    if (!m_meshGenerated) {
+        generateMesh();
+    }
+    
+    glUseProgram(shader);
+	glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, false, glm::value_ptr(glm::mat4(1.0f)));
+
+    m_mesh.draw();
 }
