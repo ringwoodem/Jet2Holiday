@@ -31,7 +31,6 @@ void Water::initializeWaves() {
     std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * glm::pi<float>());
 
     // Create multiple Gerstner waves with varying parameters
-    // Similar to your Three.js FBM approach but with Gerstner waves
 
     int numWaves = 8;
     float baseWavelength = 8.0f;
@@ -184,7 +183,7 @@ void Water::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, GL
     glUniformMatrix4fv(glGetUniformLocation(shader, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniformMatrix4fv(glGetUniformLocation(shader, "uLightSpaceMatrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
 
-    glActiveTexture(GL_TEXTURE1); // or whatever texture unit you're not using
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadowMap);
     glUniform1i(glGetUniformLocation(shader, "uShadowMap"), 1);
 

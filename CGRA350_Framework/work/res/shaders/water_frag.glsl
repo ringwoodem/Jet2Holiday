@@ -194,7 +194,6 @@ void main() {
   vec3 mixedColor2 = mix(mixedColor1, uPeakColor, peakFactor);
   vec3 finalColor = mix(mixedColor2, reflectionColor.rgb, fresnel);
   
-  // NEW: Calculate shadow
   float shadow = calculatePCSS(vFragPosLightSpace, normalize(vNormal), sunDir);
   
   vec3 ambient = mix(
