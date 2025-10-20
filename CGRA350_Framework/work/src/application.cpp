@@ -41,6 +41,8 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 Application::Application(GLFWwindow *window) : m_window(window) {
     float scene_size = 200.0f;
 
+    initShadowMap();
+
     shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
     sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
@@ -89,6 +91,11 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     tree_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_frag.glsl"));
     m_treeShader = tree_sb.build();
 
+    shader_builder shadow_sb;
+    shadow_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//shadow_vert.glsl"));
+    shadow_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//shadow_frag.glsl"));
+    m_shadowShader = shadow_sb.build();
+
     stbi_set_flip_vertically_on_load(false);
     std::vector<std::string> dayFaces = {
         CGRA_SRCDIR + std::string("//res//textures//cubemap//day//px.bmp"), // right
@@ -127,15 +134,13 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     m_cloudRenderer.init(m_cloudShader);
     
     m_showTrees = true;
-//    int numTrees = 50;
-//
     std::cout << "Creating trees..." << std::endl;
 
         std::mt19937 rng(std::random_device{}());
         std::uniform_real_distribution<float> distX(-scene_size / 2.0f, scene_size / 2.0f);
         std::uniform_real_distribution<float> distZ(-scene_size / 2.0f, scene_size / 2.0f);
 
-        int numTrees = 1;
+        int numTrees = 50;
         float waterLevel = 0.0f;
         float minHeightAboveWater = 0.5f;
 
@@ -221,6 +226,23 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     }
 }
 
+void Application::initShadowMap() {
+    glGenFramebuffers(1, &m_shadowFBO);
+    glGenTextures(1, &m_shadowMap);
+    glBindTexture(GL_TEXTURE_2D, m_shadowMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_shadowFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadowMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Application::initSkybox() {
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
@@ -277,7 +299,7 @@ void Application::render() {
     //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
     //m_panel.frame(width, height, m_mousePosition, leftDownScene, view, proj, m_cam);
     
-    m_time += 0.005f;
+    m_time += 0.001f;
 
     // helpful draw options
     if (m_show_grid) drawGrid(view, proj);
@@ -307,7 +329,7 @@ void Application::render() {
     float heightFactor = sin(angle);
     vec3 sunColour;
 
-    if (heightFactor < 0.0f) {
+    if (heightFactor < -5.0f) {
         sunColour = vec3(0.0f, 0.0f, 0.0f); // below horizon, no sun
     }
     else {
@@ -316,6 +338,11 @@ void Application::render() {
             vec3(1.0f, 1.0f, 1.0f), // Bright white at zenith
             heightFactor);            // 0 at horizon, 1 at top
     }
+
+    renderShadows(sunPos);
+
+    glViewport(0, 0, fbW, fbH);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // helpful draw options
     if (m_show_grid) drawGrid(view, proj);
@@ -340,11 +367,13 @@ void Application::render() {
     renderSandPlane(view, proj, m_time, sunPos, sunColour);
 
     // draw the model
-    m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness);
+    m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness, lightSpaceMatrix, m_shadowMap);
   
     // Draw trees
     for (auto& tree : m_trees) {
-        tree.draw(view, proj, m_treeShader, sunPos, sunColour, m_trunkTexture, m_trunkNormal, m_trunkRoughness);
+        glm::vec3 cameraPos = glm::vec3(glm::inverse(view)[3]);
+        tree.draw(view, proj, m_treeShader, sunPos, sunColour,
+            m_trunkTexture, m_trunkNormal, m_trunkRoughness, cameraPos, lightSpaceMatrix, m_shadowMap);
     }
 
     static auto lastTime = std::chrono::high_resolution_clock::now();
@@ -356,7 +385,7 @@ void Application::render() {
     float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
         
     m_water.update(deltaTime);
-    m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour);
+    m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour, lightSpaceMatrix, m_shadowMap);
 
 }
 
@@ -371,6 +400,7 @@ void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, 
     glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunPos"), 1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunColor"), 1, glm::value_ptr(sunColour));
+    glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uLightSpacematrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
 
     // Set caustics uniforms (tweak these as needed)
     glUniform1f(glGetUniformLocation(m_causticsShader, "uTime"), time);
@@ -380,6 +410,15 @@ void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, 
     glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsScale"), 8.0f);
     glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsSpeed"), 0.5f);
     glUniform1f(glGetUniformLocation(m_causticsShader, "uCausticsThickness"), 0.75f);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_shadowMap);
+    glUniform1i(glGetUniformLocation(m_causticsShader, "uShadowMap"), 1);
+
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uLightSize"), 0.01f);
+    glUniform1f(glGetUniformLocation(m_causticsShader, "uNearPlane"), 0.1f);
+    glUniform1i(glGetUniformLocation(m_causticsShader, "uBlockerSearchSamples"), 16);
+    glUniform1i(glGetUniformLocation(m_causticsShader, "uPCFSamples"), 32);
 
     // Bind sand texture to texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -425,6 +464,28 @@ void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cub
     glDepthMask(GL_TRUE);
 }
 
+void Application::renderShadows(glm::vec3 lightPos) {
+    glm::mat4 lightProjection, lightView;
+    float near_plane = 0.1f, far_plane = 300.0f;
+
+    lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
+    lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    lightSpaceMatrix = lightProjection * lightView;
+
+    glUseProgram(m_shadowShader);
+    glUniformMatrix4fv(glGetUniformLocation(m_shadowShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_shadowFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    m_terrain.drawShadows(m_shadowShader);
+    for (auto& tree : m_trees) {
+        tree.drawShadows(m_shadowShader);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
 void Application::renderGUI() {
 
