@@ -237,29 +237,31 @@ glm::vec3 Terrain::getNormalAtWorld(float worldX, float worldZ) const {
     // Convert world coordinates to grid coordinates
     float gridX = (worldX / m_scale + 0.5f) * m_width;
     float gridZ = (worldZ / m_scale + 0.5f) * m_height;
-    
-    int x0 = (int)floor(gridX);
-    int z0 = (int)floor(gridZ);
-    
-    // Clamp to valid range
-    if (x0 < 0 || x0 >= m_width - 1 || z0 < 0 || z0 >= m_height - 1) {
-        return glm::vec3(0, 1, 0); // Default up vector
-    }
-    
-    // Get heights at corners
-    float h00 = m_heightMap[z0][x0];
-    float h10 = m_heightMap[z0][x0 + 1];
-    float h01 = m_heightMap[z0 + 1][x0];
-    float h11 = m_heightMap[z0 + 1][x0 + 1];
 
-    
-    // Calculate normal using cross product of terrain edges
-    float cellSize = m_scale / m_width;
-    glm::vec3 v1(cellSize, h10 - h00, 0);
-    glm::vec3 v2(0, h01 - h00, cellSize);
-    
-    return glm::normalize(glm::cross(v1, v2));
+    int x = static_cast<int>(floor(gridX));
+    int z = static_cast<int>(floor(gridZ));
+
+    // Clamp to valid range
+    if (x <= 0 || x >= m_width - 1 || z <= 0 || z >= m_height - 1) {
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+
+    // Sample surrounding heights (central differences)
+    float hL = m_heightMap[z][x - 1]; // left
+    float hR = m_heightMap[z][x + 1]; // right
+    float hD = m_heightMap[z + 1][x]; // down
+    float hU = m_heightMap[z - 1][x]; // up
+
+    // Compute gradient
+    float dx = (hL - hR);
+    float dz = (hD - hU);
+
+    // Assume m_scale represents the horizontal spacing between samples
+    glm::vec3 normal = glm::normalize(glm::vec3(dx, 2.0f * m_scale, dz));
+
+    return normal;
 }
+
 
 void Terrain::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader, const glm::vec3& color, const glm::vec3& sunPos, const glm::vec3& sunColour,
     GLuint grassDiff, GLuint grassNorm, GLuint grassRough, const glm::mat4& lightSpaceMatrix, GLuint shadowMap) {

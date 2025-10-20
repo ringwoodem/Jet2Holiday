@@ -42,35 +42,43 @@ void CloudRenderer::setupQuad() {
 
 void CloudRenderer::render(const glm::mat4& view, const glm::mat4& proj,
                           const glm::vec3& cameraPos, float time,
-                          const glm::vec3& sunPos, const glm::vec3& sunColor) {
+                          const glm::vec3& sunPos, const glm::vec3& sunColour,
+                          float coverage, float density, float speed,
+                          float scale, float evolutionSpeed,
+                          float cloudHeight, float cloudThickness, float fuzziness) {
     glUseProgram(m_cloudShader);
     
-    // Calculate inverse view-projection
     glm::mat4 viewProj = proj * view;
     glm::mat4 invViewProj = glm::inverse(viewProj);
     
-    // Set uniforms
+    // Existing uniforms
     glUniformMatrix4fv(glGetUniformLocation(m_cloudShader, "uInvViewProj"),
                        1, GL_FALSE, glm::value_ptr(invViewProj));
     glUniform3fv(glGetUniformLocation(m_cloudShader, "uCameraPos"),
                  1, glm::value_ptr(cameraPos));
-    glUniform1f(glGetUniformLocation(m_cloudShader, "uTime"), time);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uTime"), time * speed);
     glUniform3fv(glGetUniformLocation(m_cloudShader, "uSunPos"),
                  1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(m_cloudShader, "uSunColor"),
-                 1, glm::value_ptr(sunColor));
+                 1, glm::value_ptr(sunColour));
     
-    // Enable blending for clouds
+    // NEW: Cloud control uniforms
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uCloudCoverage"), coverage);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uCloudDensity"), density);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uCloudScale"), scale);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uEvolutionSpeed"), evolutionSpeed);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uCloudHeight"), cloudHeight);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uCloudThickness"), cloudThickness);
+    glUniform1f(glGetUniformLocation(m_cloudShader, "uCloudFuzziness"), fuzziness);
+    
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE); // Don't write to depth buffer
+    glDepthMask(GL_FALSE);
     
-    // Render fullscreen quad
     glBindVertexArray(m_quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
     
-    // Restore state
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 }

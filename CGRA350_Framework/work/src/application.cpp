@@ -134,67 +134,8 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     m_cloudRenderer.init(m_cloudShader);
     
     m_showTrees = true;
-    std::cout << "Creating trees..." << std::endl;
-
-        std::mt19937 rng(std::random_device{}());
-        std::uniform_real_distribution<float> distX(-scene_size / 2.0f, scene_size / 2.0f);
-        std::uniform_real_distribution<float> distZ(-scene_size / 2.0f, scene_size / 2.0f);
-
-        int numTrees = 50;
-        float waterLevel = 0.0f;
-        float minHeightAboveWater = 0.5f;
-
-        int treesPlaced = 0;
-        int maxAttempts = numTrees * 10;
-
-        for (int attempt = 0; attempt < maxAttempts && treesPlaced < numTrees; attempt++) {
-            float x = distX(rng);
-            float z = distZ(rng);
-            
-            // Get terrain height and normal at this position
-            float terrainHeight = m_terrain.getHeightAtWorld(x, z);
-            glm::vec3 terrainNormal = m_terrain.getNormalAtWorld(x, z);
-            
-            // Only place tree if terrain is above water
-            if (terrainHeight > waterLevel + minHeightAboveWater) {
-                // Calculate tree position
-                glm::vec3 treePos(x, terrainHeight - 0.5f, z);
-                
-                // Create tree
-                Tree tree(treePos);
-                
-                // Calculate rotation to align with terrain normal
-                glm::vec3 upVector(0, 1, 0);
-                
-                // Only rotate if the terrain is significantly different from vertical
-                float dotProduct = glm::dot(upVector, terrainNormal);
-                
-                if (dotProduct < 0.99f) {
-                    glm::quat rotation = glm::rotation(upVector, terrainNormal);
-                    glm::vec3 eulerAngles = glm::eulerAngles(rotation);
-                    
-                    // Limit tilt to max 15 degrees
-                    float maxTilt = glm::radians(15.0f);
-                    eulerAngles.x = glm::clamp(eulerAngles.x, -maxTilt, maxTilt);
-                    eulerAngles.z = glm::clamp(eulerAngles.z, -maxTilt, maxTilt);
-                    
-                    tree.setRotation(eulerAngles);
-                    
-                    //std::cout << "Tree " << treesPlaced + 1 << " at (" << x << ", " << terrainHeight
-                           //  << ", " << z << ") - rotated (max 15°)" << std::endl;
-                }
-                
-                m_trees.push_back(tree);
-                treesPlaced++;
-                
-                if (treesPlaced % 10 == 0) {
-                   // std::cout << "Placed " << treesPlaced << " trees..." << std::endl;
-                }
-            }
-        }
-
-        //std::cout << "Trees created successfully: " << treesPlaced << " out of " << numTrees << " requested" << std::endl;
-
+    regenerateTrees();
+   
     cgra::mesh_builder mb;
     float size = scene_size / 2;
 
@@ -314,7 +255,12 @@ void Application::render() {
     terrainChanged |= m_terrain.getPersistence() != m_persist && (m_terrain.setPersistence(m_persist), true);
     terrainChanged |= m_terrain.getLacunarity() != m_lacunarity && (m_terrain.setLacunarity(m_lacunarity), true);
     terrainChanged |= m_terrain.getMinHeight() != m_minHeight && (m_terrain.setMinHeight(m_minHeight), true);
-    if (terrainChanged) m_terrain.update();
+    if (terrainChanged) {
+        m_terrain.update();
+        if (m_showTrees) {
+            regenerateTrees(); // Regenerate tree positions to match new terrain
+        }
+    }
 
     // draw the model
     //m_model.draw(view, proj);
@@ -354,16 +300,22 @@ void Application::render() {
     glDepthFunc(GL_LESS);
 
     // cloud stuff
+
     
+    static int frameCount = 0;
+    // In Application::render(), around line 254, replace the cloud section with:
+
     // Calculate camera position from view matrix
     glm::mat4 invView = glm::inverse(view);
     glm::vec3 cameraPos = glm::vec3(invView[3]);
-    
-    // *** ADD CLOUDS HERE ***
-       if (m_showClouds) {
-           m_cloudRenderer.render(view, proj, cameraPos, m_time, sunPos, sunColour);
-       }
-    
+
+    // Render clouds (no frame skipping for smoother results)
+    if (m_showClouds && frameCount % 2 == 0) {
+        m_cloudRenderer.render(view, proj, cameraPos, m_time, sunPos, sunColour,
+                              m_cloudCoverage, m_cloudDensity, m_cloudSpeed,
+                              m_cloudScale, m_cloudEvolutionSpeed,
+                              m_cloudHeight, m_cloudThickness, m_cloudFuzziness);
+    }
     renderSandPlane(view, proj, m_time, sunPos, sunColour);
 
     // draw the model
@@ -487,6 +439,55 @@ void Application::renderShadows(glm::vec3 lightPos) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Application::regenerateTrees() {
+    m_trees.clear();
+    
+    std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> distX(-m_scene_size / 2.0f, m_scene_size / 2.0f);
+    std::uniform_real_distribution<float> distZ(-m_scene_size / 2.0f, m_scene_size / 2.0f);
+
+    int numTrees = 50;
+    float waterLevel = 0.0f;
+    float minHeightAboveWater = 0.5f;
+
+    int treesPlaced = 0;
+    int maxAttempts = numTrees * 10;
+
+    for (int attempt = 0; attempt < maxAttempts && treesPlaced < numTrees; attempt++) {
+        float x = distX(rng);
+        float z = distZ(rng);
+        
+        // Get terrain height and normal at this position
+        float terrainHeight = m_terrain.getHeightAtWorld(x, z);
+        glm::vec3 terrainNormal = m_terrain.getNormalAtWorld(x, z);
+        
+        // Only place tree if terrain is above water
+        if (terrainHeight > waterLevel + minHeightAboveWater) {
+            // FIXED: Account for terrain's -1.5f offset and place tree at ground level
+            glm::vec3 treePos(x, terrainHeight - 1.5f, z);
+            Tree tree(treePos);
+            
+            // Calculate rotation to align with terrain normal
+            glm::vec3 upVector(0, 1, 0);
+            float dotProduct = glm::dot(upVector, terrainNormal);
+            
+            if (dotProduct < 0.99f) {
+                glm::quat rotation = glm::rotation(upVector, terrainNormal);
+                glm::vec3 eulerAngles = glm::eulerAngles(rotation);
+                
+                float maxTilt = glm::radians(15.0f);
+                eulerAngles.x = glm::clamp(eulerAngles.x, -maxTilt, maxTilt);
+                eulerAngles.z = glm::clamp(eulerAngles.z, -maxTilt, maxTilt);
+                
+                tree.setRotation(eulerAngles);
+            }
+            
+            m_trees.push_back(tree);
+            treesPlaced++;
+        }
+    }
+}
+
 void Application::renderGUI() {
 
     // setup window
@@ -513,12 +514,6 @@ void Application::renderGUI() {
     ImGui::Checkbox("Wireframe", &m_showWireframe);
     ImGui::SameLine();
     if (ImGui::Button("Screenshot")) rgba_image::screenshot(true);
-
-    // cloud stuff
-    ImGui::Separator();
-    ImGui::Text("Cloud Stuff");
-    ImGui::Checkbox("Show Clouds", &m_showClouds);
-    
     
     ImGui::Separator();
     ImGui::Text("Terrain Settings");
@@ -565,6 +560,59 @@ void Application::renderGUI() {
     if (ImGui::SliderFloat("Min Height (Water Depth)", &m_minHeight, -10.0f, 0.0f)) {
         m_terrain.setMinHeight(m_minHeight);
         terrainChanged = true;
+    }
+ 
+    // In Application::renderGUI(), replace the cloud section (around line 459):
+    ImGui::Separator();
+    ImGui::Text("Cloud Controls");
+    ImGui::Checkbox("Show Clouds", &m_showClouds);
+
+    if (m_showClouds) {
+        if (ImGui::TreeNode("Cloud Appearance")) {
+            ImGui::SliderFloat("Coverage", &m_cloudCoverage, 0.0f, 1.0f);
+            ImGui::SliderFloat("Density", &m_cloudDensity, 0.1f, 2.0f);
+            ImGui::SliderFloat("Fuzziness", &m_cloudFuzziness, 0.0f, 1.0f);
+            ImGui::SliderFloat("Scale", &m_cloudScale, 0.5f, 2.0f);
+            ImGui::TreePop();
+        }
+        
+        if (ImGui::TreeNode("Cloud Animation")) {
+            ImGui::SliderFloat("Wind Speed", &m_cloudSpeed, 0.0f, 3.0f);
+            ImGui::SliderFloat("Evolution Speed", &m_cloudEvolutionSpeed, 0.0f, 0.01f, "%.4f");
+            ImGui::TreePop();
+        }
+        
+        if (ImGui::TreeNode("Cloud Altitude")) {
+            ImGui::SliderFloat("Height", &m_cloudHeight, 20.0f, 60.0f);
+            ImGui::SliderFloat("Thickness", &m_cloudThickness, 10.0f, 40.0f);
+            ImGui::TreePop();
+        }
+        
+        // Preset buttons
+        if (ImGui::Button("Clear Sky")) {
+            m_cloudCoverage = 0.2f;
+            m_cloudDensity = 0.5f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Partly Cloudy")) {
+            m_cloudCoverage = 0.5f;
+            m_cloudDensity = 1.0f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Overcast")) {
+            m_cloudCoverage = 0.9f;
+            m_cloudDensity = 1.5f;
+        }
+    }
+    
+    ImGui::Separator();
+    ImGui::Text("Tree Settings");
+    ImGui::Checkbox("Show Trees", &m_showTrees);
+
+    if (ImGui::Button("Regenerate Tree Positions")) {
+        if (m_showTrees) {
+            regenerateTrees();
+        }
     }
     
     // tree stuff

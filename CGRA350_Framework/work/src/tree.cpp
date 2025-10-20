@@ -285,9 +285,6 @@ void Tree::generateLeavesMesh() {
         }
     }
 
-    std::cout << "Leaves - vertices: " << leafBuilder.vertices.size()
-        << ", indices: " << leafBuilder.indices.size() << std::endl;
-
     m_leavesMesh = leafBuilder.build();
 }
 
@@ -486,7 +483,6 @@ void Tree::draw(const glm::mat4& view, const glm::mat4& proj, GLuint shader,
     const glm::vec3& sunPos, const glm::vec3& sunColour,
     GLuint trunkDiffuse, GLuint trunkNormal, GLuint trunkRoughness, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, GLuint shadowMap) {
     if (!m_meshGenerated) {
-        std::cout << "=== GENERATING TREE ===" << std::endl;
         m_stems.clear();
         float trunkLength = m_params.scale * m_params.level[0].nLength;
         generateStem(0, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), trunkLength, m_params.baseSize);
