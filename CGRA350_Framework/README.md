@@ -1,5 +1,11 @@
 # CGRA OpenGL Base Project
 
+# How to navigate?
+Right-click to drag and move the camera POV
+Left-click to interact with panel
+
+
+
 # Requirements
 
 The project requires [CMake](https://cmake.org/) to build before compiling. The recommended way to build to project is to create a build folder then using CMake to create to project inside it. Make sure that you are creating the build folder in the same directory as the work folder.
@@ -114,4 +120,5 @@ In particular, the `rgba_image`, `shader_builder`, and `mesh_builder` classes ar
 - If you add new source files, put them in \/src, and they would be added to the project automatically based on their extension.
 - In VS, for example, don't forget to change the build type to debug (for debugging) or release (fast execution) as needed.
 - When submitting your work, only submit your work directory--don't submit the build directory.
+
 
