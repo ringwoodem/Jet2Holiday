@@ -3,3 +3,4 @@
 *.VC.db
 *.ipch
 *.vsidx.DS_Store
+.DS_Store

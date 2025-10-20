@@ -41,8 +41,6 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 Application::Application(GLFWwindow *window) : m_window(window) {
     float scene_size = 200.0f;
 
-    initShadowMap();
-
     shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
     sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
@@ -51,6 +49,17 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     m_cam.yawDeg = 90.0f;
     //m_panel.setPanelZ(5.0f);
     m_panel.setPanelZ(0.2f);
+    
+    m_panel.bind({
+        &m_amp,
+        &m_freq,
+        &m_octaves,
+        &m_persist,
+        &m_lacunarity,
+        &m_minHeight,
+        &m_showClouds,
+        &m_showTrees
+        });
 
     // terrain shader
     shader_builder terrain_sb;
@@ -79,11 +88,6 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     tree_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_vert.glsl"));
     tree_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//tree_frag.glsl"));
     m_treeShader = tree_sb.build();
-
-	shader_builder shadow_sb;
-	shadow_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//shadow_vert.glsl"));
-	shadow_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//shadow_frag.glsl"));
-	m_shadowShader = shadow_sb.build();
 
     stbi_set_flip_vertically_on_load(false);
     std::vector<std::string> dayFaces = {
@@ -119,7 +123,6 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     cloud_sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("/res/shaders/cloud_vert.glsl"));
     cloud_sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("/res/shaders/cloud_frag.glsl"));
     m_cloudShader = cloud_sb.build();
-    
     // Initialize cloud renderer
     m_cloudRenderer.init(m_cloudShader);
     
@@ -132,7 +135,7 @@ Application::Application(GLFWwindow *window) : m_window(window) {
         std::uniform_real_distribution<float> distX(-scene_size / 2.0f, scene_size / 2.0f);
         std::uniform_real_distribution<float> distZ(-scene_size / 2.0f, scene_size / 2.0f);
 
-        int numTrees = 20;
+        int numTrees = 1;
         float waterLevel = 0.0f;
         float minHeightAboveWater = 0.5f;
 
@@ -229,27 +232,12 @@ void Application::initSkybox() {
     glBindVertexArray(0);
 }
 
-void Application::initShadowMap() {
-	glGenFramebuffers(1, &m_shadowFBO);
-	glGenTextures(1, &m_shadowMap);
-	glBindTexture(GL_TEXTURE_2D, m_shadowMap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, m_shadowFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadowMap, 0);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void Application::render() {
     //temp
     int winW, winH;  glfwGetWindowSize(m_window, &winW, &winH);
     int fbW,  fbH;   glfwGetFramebufferSize(m_window, &fbW, &fbH);
+    
+    glViewport(0, 0, fbW, fbH);
     float aspect = (fbH > 0) ? float(fbW) / float(fbH) : 1.0f;
     
     
@@ -258,6 +246,7 @@ void Application::render() {
     glfwGetFramebufferSize(m_window, &width, &height);
 
     m_windowsize = vec2(width, height); // update window size
+    //glViewport(0, 0, width, height); // set the viewport to draw to the entire window
 
     // clear the back-buffer
     glClearColor(0.3f, 0.3f, 0.4f, 1.0f);
@@ -295,6 +284,19 @@ void Application::render() {
     if (m_show_axis) drawAxis(view, proj);
     glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
 
+    bool terrainChanged = false;
+    
+    terrainChanged |= m_terrain.getAmplitude()!= m_amp && (m_terrain.setAmplitude(m_amp), true);
+    terrainChanged |= m_terrain.getFrequency() != m_freq && (m_terrain.setFrequency(m_freq), true);
+    terrainChanged |= m_terrain.getOctaves() != m_octaves && (m_terrain.setOctaves(m_octaves), true);
+    terrainChanged |= m_terrain.getPersistence() != m_persist && (m_terrain.setPersistence(m_persist), true);
+    terrainChanged |= m_terrain.getLacunarity() != m_lacunarity && (m_terrain.setLacunarity(m_lacunarity), true);
+    terrainChanged |= m_terrain.getMinHeight() != m_minHeight && (m_terrain.setMinHeight(m_minHeight), true);
+    if (terrainChanged) m_terrain.update();
+
+    // draw the model
+    //m_model.draw(view, proj);
+
     float angle = m_time * sunSpeed;
     vec3 sunPos = vec3(
         sunOrbitRadius * cos(angle),    // X: horizontal position
@@ -305,7 +307,7 @@ void Application::render() {
     float heightFactor = sin(angle);
     vec3 sunColour;
 
-    if (heightFactor < -5.0f) {
+    if (heightFactor < 0.0f) {
         sunColour = vec3(0.0f, 0.0f, 0.0f); // below horizon, no sun
     }
     else {
@@ -314,11 +316,6 @@ void Application::render() {
             vec3(1.0f, 1.0f, 1.0f), // Bright white at zenith
             heightFactor);            // 0 at horizon, 1 at top
     }
-
-	renderShadows(sunPos);
-
-    glViewport(0, 0, fbW, fbH);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // helpful draw options
     if (m_show_grid) drawGrid(view, proj);
@@ -343,14 +340,12 @@ void Application::render() {
     renderSandPlane(view, proj, m_time, sunPos, sunColour);
 
     // draw the model
-    m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness, lightSpaceMatrix, m_shadowMap);
+    m_terrain.draw(view, proj, m_terrainShader, vec3(0.2f, 0.8f, 0.2f), sunPos, sunColour, m_grassTexture, m_grassNormal, m_grassRoughness);
   
-	// Draw trees
-	for (auto& tree : m_trees) {
-		glm::vec3 cameraPos = glm::vec3(glm::inverse(view)[3]);
-		tree.draw(view, proj, m_treeShader, sunPos, sunColour,
-			m_trunkTexture, m_trunkNormal, m_trunkRoughness, cameraPos, lightSpaceMatrix, m_shadowMap);
-	}
+    // Draw trees
+    for (auto& tree : m_trees) {
+        tree.draw(view, proj, m_treeShader, sunPos, sunColour, m_trunkTexture, m_trunkNormal, m_trunkRoughness);
+    }
 
     static auto lastTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -361,7 +356,7 @@ void Application::render() {
     float dayFactor = smoothstep(-50.0f, 50.0f, sunHeight);
         
     m_water.update(deltaTime);
-    m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour, lightSpaceMatrix, m_shadowMap);
+    m_water.draw(view, proj, m_waterShader, dayCubemap, vec3(0.1f, 0.3f, 0.7f), sunPos, sunColour);
 
 }
 
@@ -376,7 +371,6 @@ void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, 
     glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uProjectionMatrix"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunPos"), 1, glm::value_ptr(sunPos));
     glUniform3fv(glGetUniformLocation(m_causticsShader, "uSunColor"), 1, glm::value_ptr(sunColour));
-    glUniformMatrix4fv(glGetUniformLocation(m_causticsShader, "uLightSpacematrix"), 1, false, glm::value_ptr(lightSpaceMatrix));
 
     // Set caustics uniforms (tweak these as needed)
     glUniform1f(glGetUniformLocation(m_causticsShader, "uTime"), time);
@@ -391,15 +385,6 @@ void Application::renderSandPlane(const glm::mat4& view, const glm::mat4& proj, 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_sandTexture);
     glUniform1i(glGetUniformLocation(m_causticsShader, "uTexture"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, m_shadowMap);
-    glUniform1i(glGetUniformLocation(m_causticsShader, "uShadowMap"), 1);
-
-    glUniform1f(glGetUniformLocation(m_causticsShader, "uLightSize"), 0.01f);
-    glUniform1f(glGetUniformLocation(m_causticsShader, "uNearPlane"), 0.1f);
-    glUniform1i(glGetUniformLocation(m_causticsShader, "uBlockerSearchSamples"), 16);
-    glUniform1i(glGetUniformLocation(m_causticsShader, "uPCFSamples"), 32);
 
     // Draw the sand mesh
     m_sandMesh.draw();
@@ -440,28 +425,6 @@ void Application::renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cub
     glDepthMask(GL_TRUE);
 }
 
-void Application::renderShadows(glm::vec3 lightPos) {
-    glm::mat4 lightProjection, lightView;
-	float near_plane = 0.1f, far_plane = 300.0f;
-
-	lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
-	lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	lightSpaceMatrix = lightProjection * lightView;
-
-	glUseProgram(m_shadowShader);
-	glUniformMatrix4fv(glGetUniformLocation(m_shadowShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
-
-	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_shadowFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    m_terrain.drawShadows(m_shadowShader);
-    for (auto& tree : m_trees) {
-        tree.drawShadows(m_shadowShader);
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
 
 void Application::renderGUI() {
 
@@ -469,6 +432,12 @@ void Application::renderGUI() {
     ImGui::SetNextWindowPos(ImVec2(5, 5), ImGuiSetCond_Once);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiSetCond_Once);
     ImGui::Begin("Options", 0);
+    
+    if (!m_panel.hoverText().empty()) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(m_panel.hoverText().c_str());
+        ImGui::EndTooltip();
+    }
 
     // display current camera parameters
     ImGui::Text("Application %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -493,37 +462,38 @@ void Application::renderGUI() {
     ImGui::Separator();
     ImGui::Text("Terrain Settings");
 
-    static float amplitude = m_terrain.getAmplitude();
+    /**static float amplitude = m_terrain.getAmplitude();
     static float frequency = m_terrain.getFrequency();
     static int octaves = m_terrain.getOctaves();
     static float persistence = m_terrain.getPersistence();
     static float lacunarity = m_terrain.getLacunarity();
-    static float minHeight = m_terrain.getMinHeight();
+    static float minHeight = m_terrain.getMinHeight();*/
 
     bool terrainChanged = false;
+    
 
-    if (ImGui::SliderFloat("Amplitude", &amplitude, 0.1f, 50.0f)) {
-        m_terrain.setAmplitude(amplitude);
+    if (ImGui::SliderFloat("Amplitude", &m_amp, 0.1f, 50.0f)) {
+        m_terrain.setAmplitude(m_amp);
         terrainChanged = true;
     }
 
-    if (ImGui::SliderFloat("Frequency", &frequency, 0.01f, 1.0f)) {
-        m_terrain.setFrequency(frequency);
+    if (ImGui::SliderFloat("Frequency", &m_freq, 0.01f, 1.0f)) {
+        m_terrain.setFrequency(m_freq);
         terrainChanged = true;
     }
 
-    if (ImGui::SliderInt("Octaves", &octaves, 1, 8)) {
-        m_terrain.setOctaves(octaves);
+    if (ImGui::SliderInt("Octaves", &m_octaves, 1, 8)) {
+        m_terrain.setOctaves(m_octaves);
         terrainChanged = true;
     }
 
-    if (ImGui::SliderFloat("Persistence", &persistence, 0.1f, 1.0f)) {
-        m_terrain.setPersistence(persistence);
+    if (ImGui::SliderFloat("Persistence", &m_persist, 0.1f, 1.0f)) {
+        m_terrain.setPersistence(m_persist);
         terrainChanged = true;
     }
 
-    if (ImGui::SliderFloat("Lacunarity", &lacunarity, 1.5f, 4.0f)) {
-        m_terrain.setLacunarity(lacunarity);
+    if (ImGui::SliderFloat("Lacunarity", &m_lacunarity, 1.5f, 4.0f)) {
+        m_terrain.setLacunarity(m_lacunarity);
         terrainChanged = true;
     }
 
@@ -531,8 +501,8 @@ void Application::renderGUI() {
         m_terrain.update();
     }
 
-    if (ImGui::SliderFloat("Min Height (Water Depth)", &minHeight, -10.0f, 0.0f)) {
-        m_terrain.setMinHeight(minHeight);
+    if (ImGui::SliderFloat("Min Height (Water Depth)", &m_minHeight, -10.0f, 0.0f)) {
+        m_terrain.setMinHeight(m_minHeight);
         terrainChanged = true;
     }
     

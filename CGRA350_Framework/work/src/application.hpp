@@ -44,8 +44,6 @@ private:
 	GLuint m_skyboxShader;
 	GLuint m_causticsShader;
 	GLuint m_treeShader;
-	GLuint m_shadowShader;
-	glm::mat4 lightSpaceMatrix;
 
 	Terrain m_terrain;
 	Water m_water;
@@ -53,12 +51,12 @@ private:
     // Cloud Stuff
     GLuint m_cloudShader;
     CloudRenderer m_cloudRenderer;
-    bool m_showClouds = true;
+    //bool m_showClouds = true;
     
     // Tree things
     std::vector<Tree> m_trees;
     TreeParameters m_treeParams;
-    bool m_showTrees = true;
+    //bool m_showTrees = true;
     void generateTreePositions(int numClusters = 5, int treesPerCluster = 5);
 
 
@@ -67,10 +65,6 @@ private:
 	GLuint dayCubemap;
 	GLuint nightCubemap;
 	GLuint skyboxVAO = 0, skyboxVBO = 0;
-
-	GLuint m_shadowFBO;
-	GLuint m_shadowMap;
-	const int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
 	float skyboxVertices[108] = {
 		// positions          
@@ -131,11 +125,22 @@ private:
 	//float m_distance = 20;
     
     PovCamera m_cam;
-    Cockpit  m_panel;
-    bool  m_rightMouseDown = false;
+    Cockpit m_panel;
+    bool m_rightMouseDown = false;
     bool m_firstMouse = true;
     double m_lastX = 0.0;
     double m_lastY = 0.0;
+    
+    float m_amp= 10.0f;
+    float m_freq = 0.10f;
+    int m_octaves= 4;
+    float m_persist = 0.50f;
+    float m_lacunarity = 2.00f;
+    float m_minHeight = -2.00f;
+
+    //Toggles
+    bool m_showClouds = false;
+    bool m_showTrees = false;
 
 	// last input
 	bool m_leftMouseDown = false;
@@ -176,8 +181,6 @@ public:
 	GLuint loadTexture(const std::string& filepath);
 	GLuint loadCubemap(const std::vector<std::string>& faces);
 	void initSkybox();
-	void initShadowMap();
 	void renderSandPlane(const glm::mat4& view, const glm::mat4& proj, float time, const glm::vec3& sunPos, const glm::vec3& sunColour);
 	void renderSkybox(GLuint skyboxShader, GLuint skyboxVAO, GLuint cubemap, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunPos, const glm::vec3& sunColour);
-	void renderShadows(glm::vec3 lightPos);
 };

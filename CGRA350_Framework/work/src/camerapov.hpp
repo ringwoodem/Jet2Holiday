@@ -11,7 +11,7 @@
 
 struct PovCamera {
     //Pose (head position fixed to 'seat')
-    glm::vec3 position{0.0f, 1.40f, 0.0f};
+    glm::vec3 position{0.0f, 10.40f, 0.0f}; //1.4 10
     float yawDeg = 0.0f;   //left/right
     float pitchDeg = 0.0f;   //up/down
 
