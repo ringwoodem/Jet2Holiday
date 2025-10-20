@@ -184,7 +184,7 @@ void main() {
     float NdotL = max(dot(N, L), 0.0);
     
     vec3 ambient = mix(
-        vec3(0.05) * albedo,
+        vec3(0.01) * albedo,
         vec3(0.3) * albedo,
         dayFactor
     );
