@@ -293,8 +293,8 @@ void Application::render() {
     mat4 proj = m_cam.proj;
     mat4 view = m_cam.view;
 
-    bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
-    m_panel.frame(winW, winH, m_mousePosition, leftDownScene, view, proj, m_cam);
+    //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
+    //m_panel.frame(winW, winH, m_mousePosition, leftDownScene, view, proj, m_cam);
 
     //bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
     //m_panel.frame(width, height, m_mousePosition, leftDownScene, view, proj, m_cam);
@@ -340,9 +340,15 @@ void Application::render() {
     }
 
     renderShadows(sunPos);
+    
 
     glViewport(0, 0, fbW, fbH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    bool leftDownScene = m_leftMouseDown && !ImGui::GetIO().WantCaptureMouse;
+    
+    m_panel.frame(winW, winH, m_mousePosition, leftDownScene, view, proj, m_cam);
+
 
     // helpful draw options
     if (m_show_grid) drawGrid(view, proj);
@@ -353,6 +359,8 @@ void Application::render() {
     renderSkybox(m_skyboxShader, skyboxVAO, dayCubemap, view, proj, sunPos, sunColour);
     glDepthFunc(GL_LESS);
 
+    glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe ? GL_LINE : GL_FILL));
+    
     // cloud stuff
     
     // Calculate camera position from view matrix
