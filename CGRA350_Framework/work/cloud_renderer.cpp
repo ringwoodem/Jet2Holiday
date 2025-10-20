@@ -78,7 +78,7 @@ void CloudRenderer::render(const glm::mat4& view, const glm::mat4& proj,
     glBindVertexArray(m_quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
-    
+
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 }
