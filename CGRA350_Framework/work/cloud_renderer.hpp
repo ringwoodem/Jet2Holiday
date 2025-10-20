@@ -15,8 +15,10 @@ public:
     void init(GLuint shader);
     void render(const glm::mat4& view, const glm::mat4& proj,
                 const glm::vec3& cameraPos, float time,
-                const glm::vec3& sunPos, const glm::vec3& sunColor);
-    
+                const glm::vec3& sunPos, const glm::vec3& sunColour,
+                float coverage, float density, float speed,
+                float scale, float evolutionSpeed,
+                float cloudHeight, float cloudThickness, float fuzziness);
 private:
     void setupQuad();
 };

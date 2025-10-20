@@ -60,6 +60,7 @@ private:
     TreeParameters m_treeParams;
     //bool m_showTrees = true;
     void generateTreePositions(int numClusters = 5, int treesPerCluster = 5);
+    float m_scene_size = 200.0f;
 
 
 	GLuint m_sandTexture;
@@ -125,6 +126,15 @@ private:
 	GLuint m_trunkNormal;
 	GLuint m_trunkRoughness;
 
+    float m_cloudCoverage = 0.5f;
+    float m_cloudDensity = 1.0f;
+    float m_cloudSpeed = 1.0f;
+    float m_cloudScale = 1.0f;
+    float m_cloudEvolutionSpeed = 0.002f;
+    float m_cloudHeight = 35.0f;
+    float m_cloudThickness = 20.0f;
+    float m_cloudFuzziness = 0.5f;
+    
 	// oribital camera
 	//float m_pitch = .86;
 	//float m_yaw = -.86;
@@ -178,6 +188,7 @@ public:
 	void render();
 	void renderGUI();
 
+    void regenerateTrees();
 	// input callbacks
 	void cursorPosCallback(double xpos, double ypos);
 	void mouseButtonCallback(int button, int action, int mods);
